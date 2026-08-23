@@ -1014,9 +1014,7 @@ def get_all_tile_layers(
         {
             "NDVI (Before)":       {...} or None,
             "NDVI (After)":        {...} or None,
-            "NDWI (After)":        {...} or None,
-            "True Color (Before)": {...} or None,
-            "True Color (After)":  {...} or None,
+            "Water Mask (After)":  {...} or None,
             "Slope":               {...} or None,
             "before_satellite":    {...} or None,
             "after_satellite":     {...} or None,
@@ -1143,43 +1141,20 @@ def get_all_tile_layers(
         logger.error("Layer 'NDVI (After)' failed: %s", exc)
         result["NDVI (After)"] = None
 
-    # ── Layer 3: NDWI (After) — water detection ───────────────────────────────
+    # ── Layer 3: Water Mask (After) — NDWI water detection ────────────────────
     try:
         if img_after is not None:
             # Sentinel-2 NDWI = (B3 Green - B8 NIR) / (B3 + B8)
             ndwi_after = img_after.normalizedDifference(["B3", "B8"]).rename("NDWI")
-            result["NDWI (After)"] = ee_image_to_folium_tile(
-                ndwi_after, _TILE_NDWI_VIS, "NDWI (After)"
+            result["Water Mask (After)"] = ee_image_to_folium_tile(
+                ndwi_after, _TILE_NDWI_VIS, "Water Mask (After)"
             )
         else:
-            result["NDWI (After)"] = None
+            result["Water Mask (After)"] = None
     except Exception as exc:
-        logger.error("Layer 'NDWI (After)' failed: %s", exc)
-        result["NDWI (After)"] = None
+        logger.error("Layer 'Water Mask (After)' failed: %s", exc)
+        result["Water Mask (After)"] = None
 
-    # ── Layer 4: True Color (Before) ──────────────────────────────────────────
-    try:
-        if img_before is not None:
-            result["True Color (Before)"] = ee_image_to_folium_tile(
-                img_before, _TILE_TRUE_COLOR_VIS, "True Color (Before)"
-            )
-        else:
-            result["True Color (Before)"] = None
-    except Exception as exc:
-        logger.error("Layer 'True Color (Before)' failed: %s", exc)
-        result["True Color (Before)"] = None
-
-    # ── Layer 5: True Color (After) ───────────────────────────────────────────
-    try:
-        if img_after is not None:
-            result["True Color (After)"] = ee_image_to_folium_tile(
-                img_after, _TILE_TRUE_COLOR_VIS, "True Color (After)"
-            )
-        else:
-            result["True Color (After)"] = None
-    except Exception as exc:
-        logger.error("Layer 'True Color (After)' failed: %s", exc)
-        result["True Color (After)"] = None
 
     # ── Layer 6: Slope (from DEM) ─────────────────────────────────────────────
     try:
@@ -1194,7 +1169,7 @@ def get_all_tile_layers(
         logger.error("Layer 'Slope' failed: %s", exc)
         result["Slope"] = None
 
-    # ── Layer 7: Before Satellite (RGB composite for Before/After comparison) ──
+    # ── Comparison Layer: Before Satellite ────────────────────────────────────
     # Alias of True Color (Before) under a stable key consumed by the
     # Before/After comparison panel and the satellite_metadata dict in app.py.
     try:
@@ -1208,7 +1183,7 @@ def get_all_tile_layers(
         logger.error("Layer 'before_satellite' failed: %s", exc)
         result["before_satellite"] = None
 
-    # ── Layer 8: After Satellite (RGB composite for Before/After comparison) ───
+    # ── Comparison Layer: After Satellite ─────────────────────────────────────
     # Alias of True Color (After) under a stable key.
     try:
         if img_after is not None:

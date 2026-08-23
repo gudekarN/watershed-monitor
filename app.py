@@ -303,13 +303,25 @@ with st.sidebar:
     # Map layer toggles
     st.markdown("#### 🗺️ Map Layers")
     show_layers = {
+        # Main analytical layers
         "NDVI (After)":       st.checkbox("Show NDVI Layer",         value=True),
-        "Water Mask (After)": st.checkbox("Show Water Bodies",        value=True),
-        "Watershed Boundary": st.checkbox("Show Watershed Boundary",  value=True),
-        "Field Photos":       st.checkbox("Show Field Photos",        value=True),
-        "Structures":         st.checkbox("Show Structures",          value=True),
-        "Drainage Network":   st.checkbox("Show Drainage Network",    value=False),
-        "NDVI Legend":        st.checkbox("Show NDVI Legend",         value=True),
+        "Water Mask (After)": st.checkbox("Show Water Bodies",       value=True),
+
+        # Spatial context / field evidence
+        "Watershed Boundary": st.checkbox("Show Watershed Boundary", value=True),
+        "Field Photos":       st.checkbox("Show Field Photos",       value=True),
+        "Structures":         st.checkbox("Show Structures",         value=True),
+        "Drainage Network":   st.checkbox("Show Drainage Network",   value=False),
+        "NDVI Legend":        st.checkbox("Show NDVI Legend",        value=True),
+
+        # Comparison-only / optional analytical layers.
+        # Explicitly disabled here so build_complete_map() does not add them
+        # automatically. They remain available in res["tile_layers"] for
+        # future comparison/analysis features.
+        "NDVI (Before)":      False,
+        "Slope":              False,
+        "before_satellite":   False,
+        "after_satellite":    False,
     }
 
     st.divider()
