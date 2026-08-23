@@ -761,15 +761,82 @@ with tab_health:
             st.warning(f"Health gauge could not be rendered: {e}")
 
         try:
-            st.markdown("**Sub-Scores:**")
+            st.markdown("**Health Index Breakdown**")
+
             veg_s = health.get("vegetation_score", 0) or 0
             wat_s = health.get("water_score", 0) or 0
             ero_s = health.get("erosion_score", 0) or 0
-            st.progress(min(veg_s / 35, 1.0), text=f"🌿 Vegetation ({veg_s}/35)")
-            st.progress(min(wat_s / 35, 1.0), text=f"💧 Water ({wat_s}/35)")
-            st.progress(min(ero_s / 20, 1.0), text=f"🏜️ Erosion ({ero_s}/20)")
+            sust_s = health.get("sustainability_score", 0) or 0
+
+            st.progress(
+                min(veg_s / 35, 1.0),
+                text=f"🌿 Vegetation Recovery — {veg_s}/35"
+            )
+            st.progress(
+                min(wat_s / 35, 1.0),
+                text=f"💧 Water Retention — {wat_s}/35"
+            )
+            st.progress(
+                min(ero_s / 20, 1.0),
+                text=f"🏜️ Erosion Reduction — {ero_s}/20"
+            )
+            st.progress(
+                min(sust_s / 10, 1.0),
+                text=f"📈 Sustainability Trend — {sust_s}/10"
+            )
+
+            st.caption(
+                f"Total: {health.get('total_score', 0)}/100"
+            )
+
         except Exception as e:
-            st.warning(f"Sub-scores could not be rendered: {e}")
+            st.warning(f"Health score breakdown could not be rendered: {e}")
+
+        # Explain the scoring method without duplicating scoring logic.
+        _score_explanation = health.get("score_explanation", {})
+        _weights = health.get("weights", {})
+
+        with st.expander("ℹ️ How is the Health Score calculated?"):
+            st.markdown(
+                "**Watershed Health Index = 100 points**"
+            )
+
+            if _weights:
+                st.markdown(
+                    f"- 🌿 Vegetation Recovery: **{_weights.get('vegetation', 35)} points**\n"
+                    f"- 💧 Water Retention: **{_weights.get('water', 35)} points**\n"
+                    f"- 🏜️ Erosion Reduction: **{_weights.get('erosion', 20)} points**\n"
+                    f"- 📈 Sustainability Trend: **{_weights.get('sustainability', 10)} points**"
+                )
+
+            if _score_explanation:
+                st.markdown("**Reference ranges used by the prototype:**")
+
+                if _score_explanation.get("vegetation_reference"):
+                    st.caption(
+                        f"🌿 {_score_explanation['vegetation_reference']}"
+                    )
+
+                if _score_explanation.get("water_reference"):
+                    st.caption(
+                        f"💧 {_score_explanation['water_reference']}"
+                    )
+
+                if _score_explanation.get("erosion_reference"):
+                    st.caption(
+                        f"🏜️ {_score_explanation['erosion_reference']}"
+                    )
+
+                if _score_explanation.get("sustainability"):
+                    st.caption(
+                        f"📈 {_score_explanation['sustainability']}"
+                    )
+
+                if _score_explanation.get("validation_status"):
+                    st.info(
+                        _score_explanation["validation_status"],
+                        icon="ℹ️"
+                    )
 
     with h_right:
         try:
