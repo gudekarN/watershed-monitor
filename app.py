@@ -829,165 +829,391 @@ with tab_trends:
 # ── TAB 3: BEFORE/AFTER ───────────────────────────────────────────────────────
 with tab_compare:
     try:
-        # Authoritative data source
         _live_compare = (_data_source == "live")
-        b1, b2 = st.columns(2)
-
-        # Extract the already-generated GEE tile layers.
-        # These were created from the same BEFORE/AFTER composites used
-        # throughout the live analysis, so no additional GEE processing occurs.
         _tile_layers = res.get("tile_layers") or {}
 
-        with b1:
-            st.markdown("### 🔴 BEFORE · 2019")
-            if _live_compare:
-                _before_tile = _tile_layers.get("before_satellite")
-
-                if _before_tile:
-                    try:
-                        # Render the existing GEE tile layer on a dedicated
-                        # Folium map so the BEFORE view uses actual Sentinel-2
-                        # imagery without creating another thumbnail request.
-                        _before_map = folium.Map(
-                            location=[
-                                ws_info.get("lat", 20.0),
-                                ws_info.get("lon", 76.0)
-                            ],
-                            zoom_start=12,
-                            control_scale=True,
-                            tiles=None,
-                        )
-
-                        folium.TileLayer(
-                            tiles="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
-                            attr="© OpenStreetMap © CARTO",
-                            name="Reference",
-                            overlay=False,
-                            control=False,
-                        ).add_to(_before_map)
-
-                        if res.get("watershed_geom"):
-                            try:
-                                from frontend.map_builder import add_watershed_boundary
-                                add_watershed_boundary(
-                                    _before_map,
-                                    res.get("watershed_geom"),
-                                    name="Watershed Boundary"
-                                )
-                            except Exception:
-                                pass
-
-                        from backend.gee_engine import add_ee_layer_to_folium
-                        add_ee_layer_to_folium(
-                            _before_map,
-                            _before_tile,
-                            opacity=1.0
-                        )
-
-                        st_folium(
-                            _before_map,
-                            use_container_width=True,
-                            height=400,
-                            returned_objects=[]
-                        )
-                    except Exception as _before_map_err:
-                        st.warning(
-                            f"BEFORE satellite imagery unavailable: {_before_map_err}"
-                        )
-                else:
-                    st.warning("BEFORE satellite imagery unavailable.")
-            else:
-                st.info(
-                    "📁 Demo Mode\n\n"
-                    "Pre-computed demo satellite visualization is not available "
-                    "for this comparison.",
-                    icon="📁"
-                )
-
-            st.info(
-                f"**NDVI**: {veg.get('ndvi_before', 0):.2f}\n\n"
-                f"**Water**: {wat.get('area_before_ha', 0):.1f} ha",
-                icon="🔴"
-            )
-
-        with b2:
-            st.markdown("### 🟢 AFTER · 2024")
-            if _live_compare:
-                _after_tile = _tile_layers.get("after_satellite")
-
-                if _after_tile:
-                    try:
-                        _after_map = folium.Map(
-                            location=[
-                                ws_info.get("lat", 20.0),
-                                ws_info.get("lon", 76.0)
-                            ],
-                            zoom_start=12,
-                            control_scale=True,
-                            tiles=None,
-                        )
-
-                        folium.TileLayer(
-                            tiles="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
-                            attr="© OpenStreetMap © CARTO",
-                            name="Reference",
-                            overlay=False,
-                            control=False,
-                        ).add_to(_after_map)
-
-                        if res.get("watershed_geom"):
-                            try:
-                                from frontend.map_builder import add_watershed_boundary
-                                add_watershed_boundary(
-                                    _after_map,
-                                    res.get("watershed_geom"),
-                                    name="Watershed Boundary"
-                                )
-                            except Exception:
-                                pass
-
-                        from backend.gee_engine import add_ee_layer_to_folium
-                        add_ee_layer_to_folium(
-                            _after_map,
-                            _after_tile,
-                            opacity=1.0
-                        )
-
-                        st_folium(
-                            _after_map,
-                            use_container_width=True,
-                            height=400,
-                            returned_objects=[]
-                        )
-                    except Exception as _after_map_err:
-                        st.warning(
-                            f"AFTER satellite imagery unavailable: {_after_map_err}"
-                        )
-                else:
-                    st.warning("AFTER satellite imagery unavailable.")
-            else:
-                st.info(
-                    "📁 Demo Mode\n\n"
-                    "Pre-computed demo satellite visualization is not available "
-                    "for this comparison.",
-                    icon="📁"
-                )
-
-            st.success(
-                f"**NDVI**: {veg.get('ndvi_after', 0):.2f}\n\n"
-                f"**Water**: {wat.get('area_after_ha', 0):.1f} ha",
-                icon="🟢"
-            )
-
-        _src_label = (
-            "🛰️ Sentinel-2 SR Harmonized · Cloud-masked composite · Google Earth Engine"
-            if _live_compare
-            else "📁 Demo Analysis · Pre-computed Dataset"
+        st.markdown("### 🛰️ Satellite Change Comparison")
+        st.caption(
+            "Drag the divider to compare watershed conditions before and after "
+            "the intervention."
         )
-        st.caption(f"**Data source:** {_src_label}")
+
+        if _live_compare:
+            _before_tile = _tile_layers.get("before_satellite")
+            _after_tile = _tile_layers.get("after_satellite")
+
+            if not _before_tile or not _after_tile:
+                st.warning(
+                    "Before/After satellite imagery is unavailable for this live analysis."
+                )
+            else:
+                # Use one Leaflet map and two GEE tile layers.
+                # This avoids rendering two independent maps and keeps both
+                # years perfectly aligned.
+                _before_url = _before_tile.get("tile_url")
+                _after_url = _after_tile.get("tile_url")
+
+                if not _before_url or not _after_url:
+                    st.warning(
+                        "Satellite tile URLs are unavailable for this comparison."
+                    )
+                else:
+                    _lat = ws_info.get("lat", 20.0)
+                    _lon = ws_info.get("lon", 76.0)
+
+                    # Load the Leaflet side-by-side plugin only inside the
+                    # comparison component. No project dependency is added.
+                    _slider_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+html, body {{
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}}
+
+#map {{
+    width: 100%;
+    height: 520px;
+}}
+
+.compare-title {{
+    position: absolute;
+    top: 12px;
+    z-index: 1000;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.85);
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+}}
+
+.before-title {{
+    left: 12px;
+}}
+
+.after-title {{
+    right: 12px;
+}}
+
+.compare-help {{
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.88);
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    pointer-events: none;
+}}
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div class="compare-title before-title">
+    🔴 BEFORE · 2019
+</div>
+
+<div class="compare-title after-title">
+    🟢 AFTER · 2024
+</div>
+
+<div class="compare-help">
+    ↔ Drag to compare
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+(function() {{
+    const map = L.map("map", {{
+        center: [{_lat}, {_lon}],
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: true
+    }});
+
+    const reference = L.tileLayer(
+        "https://{{s}}.basemaps.cartocdn.com/light_nolabels/{{z}}/{{x}}/{{y}}{{r}}.png",
+        {{
+            attribution: "© OpenStreetMap © CARTO",
+            maxZoom: 19
+        }}
+    ).addTo(map);
+
+    const beforeLayer = L.tileLayer(
+        {_before_url!r},
+        {{
+            opacity: 1.0,
+            maxZoom: 20,
+            attribution: "Sentinel-2 / Google Earth Engine"
+        }}
+    );
+
+    const afterLayer = L.tileLayer(
+        {_after_url!r},
+        {{
+            opacity: 1.0,
+            maxZoom: 20,
+            attribution: "Sentinel-2 / Google Earth Engine"
+        }}
+    );
+
+    afterLayer.addTo(map);
+
+    // Create a clipping pane for the AFTER imagery.
+    const afterPane = map.createPane("afterPane");
+    afterPane.style.zIndex = 401;
+    afterPane.style.clipPath = "inset(0 0 0 50%)";
+
+    // Recreate AFTER layer using the clipping pane.
+    map.removeLayer(afterLayer);
+
+    const clippedAfterLayer = L.tileLayer(
+        {_after_url!r},
+        {{
+            pane: "afterPane",
+            opacity: 1.0,
+            maxZoom: 20,
+            attribution: "Sentinel-2 / Google Earth Engine"
+        }}
+    ).addTo(map);
+
+    // BEFORE remains underneath.
+    beforeLayer.addTo(map);
+
+    let split = 50;
+    let dragging = false;
+
+    function applySplit() {{
+        const pane = document.getElementById("map");
+        const width = pane.clientWidth;
+        const splitPx = Math.round(width * split / 100);
+
+        afterPane.style.clipPath =
+            `inset(0 0 0 ${{splitPx}}px)`;
+
+        divider.style.left = `${{splitPx}}px`;
+    }}
+
+    const divider = document.createElement("div");
+    divider.style.position = "absolute";
+    divider.style.top = "0";
+    divider.style.bottom = "0";
+    divider.style.width = "3px";
+    divider.style.background = "white";
+    divider.style.boxShadow = "0 0 8px rgba(0,0,0,0.45)";
+    divider.style.zIndex = "1001";
+    divider.style.left = "50%";
+    divider.style.cursor = "ew-resize";
+
+    const handle = document.createElement("div");
+    handle.innerHTML = "↔";
+    handle.style.position = "absolute";
+    handle.style.left = "50%";
+    handle.style.top = "50%";
+    handle.style.transform = "translate(-50%, -50%)";
+    handle.style.width = "38px";
+    handle.style.height = "38px";
+    handle.style.borderRadius = "50%";
+    handle.style.background = "white";
+    handle.style.color = "#0f172a";
+    handle.style.display = "flex";
+    handle.style.alignItems = "center";
+    handle.style.justifyContent = "center";
+    handle.style.fontSize = "18px";
+    handle.style.fontWeight = "700";
+    handle.style.boxShadow = "0 2px 8px rgba(0,0,0,0.35)";
+
+    divider.appendChild(handle);
+
+    document.getElementById("map").appendChild(divider);
+
+    function setSplit(clientX) {{
+        const rect = document
+            .getElementById("map")
+            .getBoundingClientRect();
+
+        split = Math.max(
+            0,
+            Math.min(100, ((clientX - rect.left) / rect.width) * 100)
+        );
+
+        applySplit();
+    }}
+
+    divider.addEventListener("mousedown", function() {{
+        dragging = true;
+    }});
+
+    document.addEventListener("mouseup", function() {{
+        dragging = false;
+    }});
+
+    document.addEventListener("mousemove", function(event) {{
+        if (dragging) {{
+            setSplit(event.clientX);
+        }}
+    }});
+
+    divider.addEventListener("touchstart", function(event) {{
+        dragging = true;
+        event.preventDefault();
+    }}, {{ passive: false }});
+
+    document.addEventListener("touchend", function() {{
+        dragging = false;
+    }});
+
+    document.addEventListener("touchmove", function(event) {{
+        if (dragging && event.touches.length) {{
+            setSplit(event.touches[0].clientX);
+        }}
+    }}, {{ passive: false }});
+
+    window.addEventListener("resize", applySplit);
+
+    // Keep the map fitted at the same location for both years.
+    map.setView([{_lat}, {_lon}], 12);
+
+    setTimeout(applySplit, 200);
+}})();
+</script>
+
+</body>
+</html>
+"""
+
+                    st.components.v1.html(
+                        _slider_html,
+                        height=540,
+                        scrolling=False
+                    )
+
+                st.markdown("")
+
+                c1, c2, c3 = st.columns(3)
+
+                with c1:
+                    st.metric(
+                        "2019 NDVI",
+                        f"{veg.get('ndvi_before', 0):.2f}"
+                    )
+
+                with c2:
+                    st.metric(
+                        "2024 NDVI",
+                        f"{veg.get('ndvi_after', 0):.2f}"
+                    )
+
+                with c3:
+                    _ndvi_delta = veg.get("change", 0) or 0
+                    st.metric(
+                        "NDVI Change",
+                        f"{'+' if _ndvi_delta > 0 else ''}{_ndvi_delta:.2f}"
+                    )
+
+                c4, c5, c6 = st.columns(3)
+
+                with c4:
+                    st.metric(
+                        "2019 Water Area",
+                        f"{wat.get('area_before_ha', 0):.1f} ha"
+                    )
+
+                with c5:
+                    st.metric(
+                        "2024 Water Area",
+                        f"{wat.get('area_after_ha', 0):.1f} ha"
+                    )
+
+                with c6:
+                    _water_delta = wat.get("change_percent", 0) or 0
+                    st.metric(
+                        "Water Change",
+                        f"{'+' if _water_delta > 0 else ''}{_water_delta:.1f}%"
+                    )
+
+                st.caption(
+                    "🛰️ Sentinel-2 SR Harmonized · Cloud-masked composite · "
+                    "Google Earth Engine"
+                )
+
+        else:
+            st.info(
+                "📁 Demo Mode — interactive Sentinel-2 comparison is available "
+                "only for live satellite analysis.",
+                icon="📁"
+            )
+
+            # Keep demo metrics visible.
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+                st.metric(
+                    "2019 NDVI",
+                    f"{veg.get('ndvi_before', 0):.2f}"
+                )
+
+            with c2:
+                st.metric(
+                    "2024 NDVI",
+                    f"{veg.get('ndvi_after', 0):.2f}"
+                )
+
+            with c3:
+                st.metric(
+                    "NDVI Change",
+                    f"{veg.get('change', 0) or 0:.2f}"
+                )
+
+            c4, c5, c6 = st.columns(3)
+
+            with c4:
+                st.metric(
+                    "2019 Water Area",
+                    f"{wat.get('area_before_ha', 0):.1f} ha"
+                )
+
+            with c5:
+                st.metric(
+                    "2024 Water Area",
+                    f"{wat.get('area_after_ha', 0):.1f} ha"
+                )
+
+            with c6:
+                st.metric(
+                    "Water Change",
+                    f"{wat.get('change_percent', 0) or 0:.1f}%"
+                )
+
+            st.caption("📁 Demo Analysis · Pre-computed Dataset")
 
     except Exception as e:
-        st.warning(f"Before/After comparison could not be rendered: {e}")
+        st.warning(
+            f"Before/After comparison could not be rendered: {e}"
+        )
 
 # ── TAB 4: LAND USE & EROSION ─────────────────────────────────────────────────
 with tab_landuse:
