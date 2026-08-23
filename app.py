@@ -1529,7 +1529,26 @@ with tab_photos:
     st.subheader("📋 Field Verification Log")
     try:
         all_photos = load_all_photos(chosen_id)
+
+        st.markdown("### 📋 Field Evidence Status")
+        st.caption(
+            "GPS reference matching compares the uploaded photo location with sample "
+            "field observations. A reference match is not automatic proof of field truth."
+        )
+
         if all_photos:
+            total_obs = len(all_photos)
+            ref_matches = sum(1 for p in all_photos if p.get("verification_status") == "reference_match")
+            type_mismatches = sum(1 for p in all_photos if p.get("verification_status") == "reference_type_mismatch")
+            unmatched = sum(1 for p in all_photos if p.get("verification_status") in ("no_reference_match", "gps_unavailable", "not_matched"))
+            
+            st.markdown(
+                f"**Total observations:** {total_obs} | "
+                f"**✅ Reference matches:** {ref_matches} | "
+                f"**⚠️ Type mismatches:** {type_mismatches} | "
+                f"**ℹ️ Unmatched / GPS unavailable:** {unmatched}"
+            )
+
             p_cols = st.columns(3)
             for i, photo in enumerate(all_photos):
                 with p_cols[i % 3]:
@@ -1537,6 +1556,44 @@ with tab_photos:
                         'Functional': '#22c55e', 'Needs Repair': '#f59e0b',
                         'Damaged': '#ef4444', 'Dry': '#64748b'
                     }.get(photo.get('status', ''), '#3b82f6')
+
+                    v_status = photo.get("verification_status", "not_matched")
+                    if v_status == "reference_match":
+                        v_label = "✅ GPS Reference Match"
+                        v_color = "#166534"
+                        v_bg = "#dcfce7"
+                    elif v_status == "reference_type_mismatch":
+                        v_label = "⚠️ Reference Type Mismatch"
+                        v_color = "#92400e"
+                        v_bg = "#fef3c7"
+                    elif v_status == "no_reference_match":
+                        v_label = "ℹ️ No Reference Match"
+                        v_color = "#475569"
+                        v_bg = "#f1f5f9"
+                    elif v_status == "gps_unavailable":
+                        v_label = "⚠️ GPS Unavailable"
+                        v_color = "#475569"
+                        v_bg = "#f1f5f9"
+                    else:
+                        v_label = "ℹ️ Verification Pending"
+                        v_color = "#475569"
+                        v_bg = "#f1f5f9"
+
+                    ref_dist = photo.get("reference_distance_m")
+                    ref_id = photo.get("reference_observation_id")
+                    
+                    ref_html = ""
+                    if ref_dist is not None:
+                        try:
+                            ref_html += f"<br>📏 Reference distance: {float(ref_dist):.1f} m"
+                        except (TypeError, ValueError):
+                            pass
+                    if ref_id is not None:
+                        ref_html += f"<br>🔎 Reference observation: #{ref_id}"
+
+                    verified_html = ""
+                    if photo.get("verified"):
+                        verified_html = "<div style='margin-top:6px; font-size:11px; color:#888;'>✓ Manually Verified</div>"
 
                     st.markdown(f"""
                     <div style="border:1px solid #334155; border-radius:10px; padding:12px;
