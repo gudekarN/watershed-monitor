@@ -1,0 +1,6 @@
+.env
+data/cache/
+geo_photos/uploads/
+temp_charts/
+__pycache__/
+*.pyc

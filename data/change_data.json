@@ -1,0 +1,312 @@
+{
+  "hiware_bazar": {
+    "vegetation": {
+      "ndvi_before": 0.28,
+      "ndvi_after": 0.58,
+      "change": 0.3,
+      "improved_area_ha": 520,
+      "declined_area_ha": 35,
+      "unchanged_area_ha": 295,
+      "percent_improved": 61.2
+    },
+    "water": {
+      "area_before_ha": 3.2,
+      "area_after_ha": 12.8,
+      "change_ha": 9.6,
+      "change_percent": 300.0,
+      "new_water_bodies": 3,
+      "months_with_water_before": 4,
+      "months_with_water_after": 9
+    },
+    "erosion": {
+      "high_risk_before_ha": 280,
+      "high_risk_after_ha": 95,
+      "reduction_percent": 66.1,
+      "classes_before": {
+        "Very Low": 120,
+        "Low": 180,
+        "Medium": 270,
+        "High": 200,
+        "Very High": 80
+      },
+      "classes_after": {
+        "Very Low": 250,
+        "Low": 280,
+        "Medium": 220,
+        "High": 80,
+        "Very High": 20
+      }
+    },
+    "landuse": {
+      "transition_matrix": {
+        "Barren to Vegetation": 180,
+        "Barren to Water": 25,
+        "Sparse Veg to Dense Veg": 220,
+        "Water to Water": 30,
+        "Unchanged": 395
+      },
+      "classes_before": {
+        "Water": 32,
+        "Dense Vegetation": 180,
+        "Sparse Vegetation": 250,
+        "Barren": 320,
+        "Built-up": 68
+      },
+      "classes_after": {
+        "Water": 128,
+        "Dense Vegetation": 380,
+        "Sparse Vegetation": 200,
+        "Barren": 120,
+        "Built-up": 72
+      }
+    }
+  },
+  "ralegan_siddhi": {
+    "vegetation": {
+      "ndvi_before": 0.26,
+      "ndvi_after": 0.54,
+      "change": 0.28,
+      "improved_area_ha": 610,
+      "declined_area_ha": 42,
+      "unchanged_area_ha": 578,
+      "percent_improved": 49.8
+    },
+    "water": {
+      "area_before_ha": 4.5,
+      "area_after_ha": 14.5,
+      "change_ha": 10.0,
+      "change_percent": 222.2,
+      "new_water_bodies": 2,
+      "months_with_water_before": 5,
+      "months_with_water_after": 10
+    },
+    "erosion": {
+      "high_risk_before_ha": 310,
+      "high_risk_after_ha": 115,
+      "reduction_percent": 62.9,
+      "classes_before": {
+        "Very Low": 100,
+        "Low": 160,
+        "Medium": 300,
+        "High": 230,
+        "Very High": 80
+      },
+      "classes_after": {
+        "Very Low": 240,
+        "Low": 290,
+        "Medium": 230,
+        "High": 90,
+        "Very High": 20
+      }
+    },
+    "landuse": {
+      "transition_matrix": {
+        "Barren to Vegetation": 160,
+        "Barren to Water": 30,
+        "Sparse Veg to Dense Veg": 200,
+        "Water to Water": 45,
+        "Unchanged": 795
+      },
+      "classes_before": {
+        "Water": 45,
+        "Dense Vegetation": 200,
+        "Sparse Vegetation": 280,
+        "Barren": 380,
+        "Built-up": 95
+      },
+      "classes_after": {
+        "Water": 145,
+        "Dense Vegetation": 400,
+        "Sparse Vegetation": 220,
+        "Barren": 150,
+        "Built-up": 85
+      }
+    }
+  },
+  "arvari_river": {
+    "vegetation": {
+      "ndvi_before": 0.24,
+      "ndvi_after": 0.66,
+      "change": 0.42,
+      "improved_area_ha": 1820,
+      "declined_area_ha": 55,
+      "unchanged_area_ha": 705,
+      "percent_improved": 71.2
+    },
+    "water": {
+      "area_before_ha": 5.5,
+      "area_after_ha": 40.2,
+      "change_ha": 34.7,
+      "change_percent": 630.9,
+      "new_water_bodies": 8,
+      "months_with_water_before": 3,
+      "months_with_water_after": 11
+    },
+    "erosion": {
+      "high_risk_before_ha": 920,
+      "high_risk_after_ha": 185,
+      "reduction_percent": 79.9,
+      "classes_before": {
+        "Very Low": 200,
+        "Low": 450,
+        "Medium": 900,
+        "High": 700,
+        "Very High": 330
+      },
+      "classes_after": {
+        "Very Low": 700,
+        "Low": 900,
+        "Medium": 750,
+        "High": 150,
+        "Very High": 80
+      }
+    },
+    "landuse": {
+      "transition_matrix": {
+        "Barren to Vegetation": 620,
+        "Barren to Water": 120,
+        "Sparse Veg to Dense Veg": 750,
+        "Water to Water": 55,
+        "Unchanged": 1035
+      },
+      "classes_before": {
+        "Water": 55,
+        "Dense Vegetation": 500,
+        "Sparse Vegetation": 800,
+        "Barren": 1400,
+        "Built-up": 245
+      },
+      "classes_after": {
+        "Water": 402,
+        "Dense Vegetation": 1500,
+        "Sparse Vegetation": 600,
+        "Barren": 400,
+        "Built-up": 278
+      }
+    }
+  },
+  "sukhomajri": {
+    "vegetation": {
+      "ndvi_before": 0.28,
+      "ndvi_after": 0.42,
+      "change": 0.14,
+      "improved_area_ha": 280,
+      "declined_area_ha": 30,
+      "unchanged_area_ha": 900,
+      "percent_improved": 23.1
+    },
+    "water": {
+      "area_before_ha": 1.5,
+      "area_after_ha": 4.5,
+      "change_ha": 3.0,
+      "change_percent": 200.0,
+      "new_water_bodies": 1,
+      "months_with_water_before": 4,
+      "months_with_water_after": 7
+    },
+    "erosion": {
+      "high_risk_before_ha": 180,
+      "high_risk_after_ha": 110,
+      "reduction_percent": 38.9,
+      "classes_before": {
+        "Very Low": 80,
+        "Low": 120,
+        "Medium": 200,
+        "High": 150,
+        "Very High": 60
+      },
+      "classes_after": {
+        "Very Low": 160,
+        "Low": 180,
+        "Medium": 200,
+        "High": 90,
+        "Very High": 30
+      }
+    },
+    "landuse": {
+      "transition_matrix": {
+        "Barren to Vegetation": 80,
+        "Barren to Water": 10,
+        "Sparse Veg to Dense Veg": 75,
+        "Water to Water": 15,
+        "Unchanged": 630
+      },
+      "classes_before": {
+        "Water": 15,
+        "Dense Vegetation": 120,
+        "Sparse Vegetation": 180,
+        "Barren": 280,
+        "Built-up": 15
+      },
+      "classes_after": {
+        "Water": 45,
+        "Dense Vegetation": 230,
+        "Sparse Vegetation": 160,
+        "Barren": 170,
+        "Built-up": 5
+      }
+    }
+  },
+  "anantapur": {
+    "vegetation": {
+      "ndvi_before": 0.22,
+      "ndvi_after": 0.28,
+      "change": 0.06,
+      "improved_area_ha": 180,
+      "declined_area_ha": 210,
+      "unchanged_area_ha": 1480,
+      "percent_improved": 9.6
+    },
+    "water": {
+      "area_before_ha": 1.2,
+      "area_after_ha": 1.4,
+      "change_ha": 0.2,
+      "change_percent": 16.7,
+      "new_water_bodies": 0,
+      "months_with_water_before": 2,
+      "months_with_water_after": 2
+    },
+    "erosion": {
+      "high_risk_before_ha": 560,
+      "high_risk_after_ha": 530,
+      "reduction_percent": 5.4,
+      "classes_before": {
+        "Very Low": 90,
+        "Low": 200,
+        "Medium": 420,
+        "High": 430,
+        "Very High": 130
+      },
+      "classes_after": {
+        "Very Low": 100,
+        "Low": 210,
+        "Medium": 430,
+        "High": 400,
+        "Very High": 130
+      }
+    },
+    "landuse": {
+      "transition_matrix": {
+        "Barren to Vegetation": 80,
+        "Barren to Water": 5,
+        "Sparse Veg to Dense Veg": 40,
+        "Vegetation to Barren": 120,
+        "Unchanged": 2025
+      },
+      "classes_before": {
+        "Water": 12,
+        "Dense Vegetation": 150,
+        "Sparse Vegetation": 380,
+        "Barren": 1000,
+        "Built-up": 158
+      },
+      "classes_after": {
+        "Water": 14,
+        "Dense Vegetation": 180,
+        "Sparse Vegetation": 380,
+        "Barren": 1060,
+        "Built-up": 166
+      }
+    }
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "hiware_bazar": [
+    {
+      "month": "Jan",
+      "ndvi": 0.3
+    },
+    {
+      "month": "Feb",
+      "ndvi": 0.25
+    },
+    {
+      "month": "Mar",
+      "ndvi": 0.2
+    },
+    {
+      "month": "Apr",
+      "ndvi": 0.18
+    },
+    {
+      "month": "May",
+      "ndvi": 0.15
+    },
+    {
+      "month": "Jun",
+      "ndvi": 0.28
+    },
+    {
+      "month": "Jul",
+      "ndvi": 0.55
+    },
+    {
+      "month": "Aug",
+      "ndvi": 0.68
+    },
+    {
+      "month": "Sep",
+      "ndvi": 0.72
+    },
+    {
+      "month": "Oct",
+      "ndvi": 0.65
+    },
+    {
+      "month": "Nov",
+      "ndvi": 0.48
+    },
+    {
+      "month": "Dec",
+      "ndvi": 0.35
+    }
+  ],
+  "ralegan_siddhi": [
+    {
+      "month": "Jan",
+      "ndvi": 0.28
+    },
+    {
+      "month": "Feb",
+      "ndvi": 0.23
+    },
+    {
+      "month": "Mar",
+      "ndvi": 0.18
+    },
+    {
+      "month": "Apr",
+      "ndvi": 0.16
+    },
+    {
+      "month": "May",
+      "ndvi": 0.14
+    },
+    {
+      "month": "Jun",
+      "ndvi": 0.26
+    },
+    {
+      "month": "Jul",
+      "ndvi": 0.52
+    },
+    {
+      "month": "Aug",
+      "ndvi": 0.65
+    },
+    {
+      "month": "Sep",
+      "ndvi": 0.7
+    },
+    {
+      "month": "Oct",
+      "ndvi": 0.62
+    },
+    {
+      "month": "Nov",
+      "ndvi": 0.45
+    },
+    {
+      "month": "Dec",
+      "ndvi": 0.32
+    }
+  ],
+  "arvari_river": [
+    {
+      "month": "Jan",
+      "ndvi": 0.35
+    },
+    {
+      "month": "Feb",
+      "ndvi": 0.3
+    },
+    {
+      "month": "Mar",
+      "ndvi": 0.26
+    },
+    {
+      "month": "Apr",
+      "ndvi": 0.22
+    },
+    {
+      "month": "May",
+      "ndvi": 0.2
+    },
+    {
+      "month": "Jun",
+      "ndvi": 0.32
+    },
+    {
+      "month": "Jul",
+      "ndvi": 0.62
+    },
+    {
+      "month": "Aug",
+      "ndvi": 0.74
+    },
+    {
+      "month": "Sep",
+      "ndvi": 0.78
+    },
+    {
+      "month": "Oct",
+      "ndvi": 0.72
+    },
+    {
+      "month": "Nov",
+      "ndvi": 0.55
+    },
+    {
+      "month": "Dec",
+      "ndvi": 0.42
+    }
+  ],
+  "sukhomajri": [
+    {
+      "month": "Jan",
+      "ndvi": 0.22
+    },
+    {
+      "month": "Feb",
+      "ndvi": 0.2
+    },
+    {
+      "month": "Mar",
+      "ndvi": 0.18
+    },
+    {
+      "month": "Apr",
+      "ndvi": 0.16
+    },
+    {
+      "month": "May",
+      "ndvi": 0.14
+    },
+    {
+      "month": "Jun",
+      "ndvi": 0.3
+    },
+    {
+      "month": "Jul",
+      "ndvi": 0.56
+    },
+    {
+      "month": "Aug",
+      "ndvi": 0.65
+    },
+    {
+      "month": "Sep",
+      "ndvi": 0.68
+    },
+    {
+      "month": "Oct",
+      "ndvi": 0.55
+    },
+    {
+      "month": "Nov",
+      "ndvi": 0.38
+    },
+    {
+      "month": "Dec",
+      "ndvi": 0.26
+    }
+  ],
+  "anantapur": [
+    {
+      "month": "Jan",
+      "ndvi": 0.18
+    },
+    {
+      "month": "Feb",
+      "ndvi": 0.15
+    },
+    {
+      "month": "Mar",
+      "ndvi": 0.12
+    },
+    {
+      "month": "Apr",
+      "ndvi": 0.1
+    },
+    {
+      "month": "May",
+      "ndvi": 0.09
+    },
+    {
+      "month": "Jun",
+      "ndvi": 0.18
+    },
+    {
+      "month": "Jul",
+      "ndvi": 0.35
+    },
+    {
+      "month": "Aug",
+      "ndvi": 0.42
+    },
+    {
+      "month": "Sep",
+      "ndvi": 0.4
+    },
+    {
+      "month": "Oct",
+      "ndvi": 0.3
+    },
+    {
+      "month": "Nov",
+      "ndvi": 0.22
+    },
+    {
+      "month": "Dec",
+      "ndvi": 0.16
+    }
+  ]
+}

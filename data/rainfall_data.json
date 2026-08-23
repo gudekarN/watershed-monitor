@@ -1,0 +1,252 @@
+{
+  "hiware_bazar": [
+    {
+      "month": "Jan",
+      "rainfall_mm": 5
+    },
+    {
+      "month": "Feb",
+      "rainfall_mm": 2
+    },
+    {
+      "month": "Mar",
+      "rainfall_mm": 8
+    },
+    {
+      "month": "Apr",
+      "rainfall_mm": 12
+    },
+    {
+      "month": "May",
+      "rainfall_mm": 18
+    },
+    {
+      "month": "Jun",
+      "rainfall_mm": 85
+    },
+    {
+      "month": "Jul",
+      "rainfall_mm": 145
+    },
+    {
+      "month": "Aug",
+      "rainfall_mm": 120
+    },
+    {
+      "month": "Sep",
+      "rainfall_mm": 90
+    },
+    {
+      "month": "Oct",
+      "rainfall_mm": 35
+    },
+    {
+      "month": "Nov",
+      "rainfall_mm": 10
+    },
+    {
+      "month": "Dec",
+      "rainfall_mm": 3
+    }
+  ],
+  "ralegan_siddhi": [
+    {
+      "month": "Jan",
+      "rainfall_mm": 6
+    },
+    {
+      "month": "Feb",
+      "rainfall_mm": 3
+    },
+    {
+      "month": "Mar",
+      "rainfall_mm": 10
+    },
+    {
+      "month": "Apr",
+      "rainfall_mm": 15
+    },
+    {
+      "month": "May",
+      "rainfall_mm": 22
+    },
+    {
+      "month": "Jun",
+      "rainfall_mm": 95
+    },
+    {
+      "month": "Jul",
+      "rainfall_mm": 160
+    },
+    {
+      "month": "Aug",
+      "rainfall_mm": 135
+    },
+    {
+      "month": "Sep",
+      "rainfall_mm": 100
+    },
+    {
+      "month": "Oct",
+      "rainfall_mm": 40
+    },
+    {
+      "month": "Nov",
+      "rainfall_mm": 12
+    },
+    {
+      "month": "Dec",
+      "rainfall_mm": 4
+    }
+  ],
+  "arvari_river": [
+    {
+      "month": "Jan",
+      "rainfall_mm": 8
+    },
+    {
+      "month": "Feb",
+      "rainfall_mm": 5
+    },
+    {
+      "month": "Mar",
+      "rainfall_mm": 10
+    },
+    {
+      "month": "Apr",
+      "rainfall_mm": 5
+    },
+    {
+      "month": "May",
+      "rainfall_mm": 10
+    },
+    {
+      "month": "Jun",
+      "rainfall_mm": 55
+    },
+    {
+      "month": "Jul",
+      "rainfall_mm": 175
+    },
+    {
+      "month": "Aug",
+      "rainfall_mm": 155
+    },
+    {
+      "month": "Sep",
+      "rainfall_mm": 110
+    },
+    {
+      "month": "Oct",
+      "rainfall_mm": 25
+    },
+    {
+      "month": "Nov",
+      "rainfall_mm": 8
+    },
+    {
+      "month": "Dec",
+      "rainfall_mm": 3
+    }
+  ],
+  "sukhomajri": [
+    {
+      "month": "Jan",
+      "rainfall_mm": 20
+    },
+    {
+      "month": "Feb",
+      "rainfall_mm": 25
+    },
+    {
+      "month": "Mar",
+      "rainfall_mm": 20
+    },
+    {
+      "month": "Apr",
+      "rainfall_mm": 15
+    },
+    {
+      "month": "May",
+      "rainfall_mm": 18
+    },
+    {
+      "month": "Jun",
+      "rainfall_mm": 65
+    },
+    {
+      "month": "Jul",
+      "rainfall_mm": 280
+    },
+    {
+      "month": "Aug",
+      "rainfall_mm": 260
+    },
+    {
+      "month": "Sep",
+      "rainfall_mm": 145
+    },
+    {
+      "month": "Oct",
+      "rainfall_mm": 30
+    },
+    {
+      "month": "Nov",
+      "rainfall_mm": 10
+    },
+    {
+      "month": "Dec",
+      "rainfall_mm": 12
+    }
+  ],
+  "anantapur": [
+    {
+      "month": "Jan",
+      "rainfall_mm": 3
+    },
+    {
+      "month": "Feb",
+      "rainfall_mm": 4
+    },
+    {
+      "month": "Mar",
+      "rainfall_mm": 6
+    },
+    {
+      "month": "Apr",
+      "rainfall_mm": 12
+    },
+    {
+      "month": "May",
+      "rainfall_mm": 20
+    },
+    {
+      "month": "Jun",
+      "rainfall_mm": 50
+    },
+    {
+      "month": "Jul",
+      "rainfall_mm": 110
+    },
+    {
+      "month": "Aug",
+      "rainfall_mm": 120
+    },
+    {
+      "month": "Sep",
+      "rainfall_mm": 130
+    },
+    {
+      "month": "Oct",
+      "rainfall_mm": 80
+    },
+    {
+      "month": "Nov",
+      "rainfall_mm": 22
+    },
+    {
+      "month": "Dec",
+      "rainfall_mm": 5
+    }
+  ]
+}

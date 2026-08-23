@@ -1,0 +1,277 @@
+{
+  "hiware_bazar": {
+    "labels": [
+      "Water",
+      "Dense Vegetation",
+      "Sparse Vegetation",
+      "Barren",
+      "Built-up"
+    ],
+    "before_areas_ha": [
+      32,
+      180,
+      250,
+      320,
+      68
+    ],
+    "after_areas_ha": [
+      128,
+      380,
+      200,
+      120,
+      72
+    ],
+    "flows": [
+      {
+        "source": "Barren",
+        "target": "Sparse Vegetation",
+        "value": 120
+      },
+      {
+        "source": "Barren",
+        "target": "Dense Vegetation",
+        "value": 55
+      },
+      {
+        "source": "Barren",
+        "target": "Water",
+        "value": 25
+      },
+      {
+        "source": "Sparse Vegetation",
+        "target": "Dense Vegetation",
+        "value": 145
+      },
+      {
+        "source": "Water",
+        "target": "Water",
+        "value": 32
+      },
+      {
+        "source": "Dense Vegetation",
+        "target": "Dense Vegetation",
+        "value": 180
+      }
+    ]
+  },
+  "ralegan_siddhi": {
+    "labels": [
+      "Water",
+      "Dense Vegetation",
+      "Sparse Vegetation",
+      "Barren",
+      "Built-up"
+    ],
+    "before_areas_ha": [
+      45,
+      200,
+      280,
+      380,
+      95
+    ],
+    "after_areas_ha": [
+      145,
+      400,
+      220,
+      150,
+      85
+    ],
+    "flows": [
+      {
+        "source": "Barren",
+        "target": "Sparse Vegetation",
+        "value": 110
+      },
+      {
+        "source": "Barren",
+        "target": "Dense Vegetation",
+        "value": 65
+      },
+      {
+        "source": "Barren",
+        "target": "Water",
+        "value": 30
+      },
+      {
+        "source": "Sparse Vegetation",
+        "target": "Dense Vegetation",
+        "value": 155
+      },
+      {
+        "source": "Water",
+        "target": "Water",
+        "value": 45
+      },
+      {
+        "source": "Dense Vegetation",
+        "target": "Dense Vegetation",
+        "value": 200
+      }
+    ]
+  },
+  "arvari_river": {
+    "labels": [
+      "Water",
+      "Dense Vegetation",
+      "Sparse Vegetation",
+      "Barren",
+      "Built-up"
+    ],
+    "before_areas_ha": [
+      55,
+      500,
+      800,
+      1400,
+      245
+    ],
+    "after_areas_ha": [
+      402,
+      1500,
+      600,
+      400,
+      278
+    ],
+    "flows": [
+      {
+        "source": "Barren",
+        "target": "Sparse Vegetation",
+        "value": 380
+      },
+      {
+        "source": "Barren",
+        "target": "Dense Vegetation",
+        "value": 240
+      },
+      {
+        "source": "Barren",
+        "target": "Water",
+        "value": 120
+      },
+      {
+        "source": "Sparse Vegetation",
+        "target": "Dense Vegetation",
+        "value": 600
+      },
+      {
+        "source": "Water",
+        "target": "Water",
+        "value": 55
+      },
+      {
+        "source": "Dense Vegetation",
+        "target": "Dense Vegetation",
+        "value": 500
+      }
+    ]
+  },
+  "sukhomajri": {
+    "labels": [
+      "Water",
+      "Dense Vegetation",
+      "Sparse Vegetation",
+      "Barren",
+      "Built-up"
+    ],
+    "before_areas_ha": [
+      15,
+      120,
+      180,
+      280,
+      15
+    ],
+    "after_areas_ha": [
+      45,
+      230,
+      160,
+      170,
+      5
+    ],
+    "flows": [
+      {
+        "source": "Barren",
+        "target": "Sparse Vegetation",
+        "value": 60
+      },
+      {
+        "source": "Barren",
+        "target": "Dense Vegetation",
+        "value": 25
+      },
+      {
+        "source": "Barren",
+        "target": "Water",
+        "value": 10
+      },
+      {
+        "source": "Sparse Vegetation",
+        "target": "Dense Vegetation",
+        "value": 75
+      },
+      {
+        "source": "Water",
+        "target": "Water",
+        "value": 15
+      },
+      {
+        "source": "Dense Vegetation",
+        "target": "Dense Vegetation",
+        "value": 120
+      }
+    ]
+  },
+  "anantapur": {
+    "labels": [
+      "Water",
+      "Dense Vegetation",
+      "Sparse Vegetation",
+      "Barren",
+      "Built-up"
+    ],
+    "before_areas_ha": [
+      12,
+      150,
+      380,
+      1000,
+      158
+    ],
+    "after_areas_ha": [
+      14,
+      180,
+      380,
+      1060,
+      166
+    ],
+    "flows": [
+      {
+        "source": "Barren",
+        "target": "Sparse Vegetation",
+        "value": 55
+      },
+      {
+        "source": "Barren",
+        "target": "Dense Vegetation",
+        "value": 20
+      },
+      {
+        "source": "Barren",
+        "target": "Water",
+        "value": 5
+      },
+      {
+        "source": "Sparse Vegetation",
+        "target": "Barren",
+        "value": 95
+      },
+      {
+        "source": "Dense Vegetation",
+        "target": "Barren",
+        "value": 25
+      },
+      {
+        "source": "Water",
+        "target": "Water",
+        "value": 12
+      }
+    ]
+  }
+}

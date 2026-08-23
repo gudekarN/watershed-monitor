@@ -1,0 +1,107 @@
+[
+  {
+    "id": "hiware_bazar",
+    "name": "Hiware Bazar",
+    "state": "Maharashtra",
+    "district": "Ahmednagar",
+    "lat": 19.3516,
+    "lon": 74.5535,
+    "project_type": "Integrated Watershed Development",
+    "start_year": 2019,
+    "structures": {
+      "check_dams": 8,
+      "farm_ponds": 15,
+      "contour_trenches": 2200,
+      "percolation_tanks": 4,
+      "gabion_structures": 6
+    },
+    "area_sq_km": 18.5,
+    "annual_rainfall_mm": 450,
+    "elevation_range": "550m - 780m",
+    "description": "Model village watershed project in semi-arid Maharashtra"
+  },
+  {
+    "id": "ralegan_siddhi",
+    "name": "Ralegan Siddhi",
+    "state": "Maharashtra",
+    "district": "Ahmednagar",
+    "lat": 18.8752,
+    "lon": 74.496,
+    "project_type": "Community Watershed Management",
+    "start_year": 2018,
+    "structures": {
+      "check_dams": 5,
+      "farm_ponds": 10,
+      "contour_trenches": 1800,
+      "percolation_tanks": 3,
+      "gabion_structures": 4
+    },
+    "area_sq_km": 22.3,
+    "annual_rainfall_mm": 500,
+    "elevation_range": "520m - 720m",
+    "description": "Anna Hazare's model village watershed"
+  },
+  {
+    "id": "arvari_river",
+    "name": "Arvari River Basin",
+    "state": "Rajasthan",
+    "district": "Alwar",
+    "lat": 27.553,
+    "lon": 76.6346,
+    "project_type": "River Rejuvenation",
+    "start_year": 2017,
+    "structures": {
+      "check_dams": 12,
+      "farm_ponds": 8,
+      "contour_trenches": 3000,
+      "percolation_tanks": 6,
+      "gabion_structures": 10
+    },
+    "area_sq_km": 45.8,
+    "annual_rainfall_mm": 620,
+    "elevation_range": "340m - 580m",
+    "description": "Rajendra Singh's river rejuvenation - Arvari Parliament"
+  },
+  {
+    "id": "sukhomajri",
+    "name": "Sukhomajri",
+    "state": "Haryana",
+    "district": "Panchkula",
+    "lat": 30.74,
+    "lon": 76.892,
+    "project_type": "Soil and Water Conservation",
+    "start_year": 2020,
+    "structures": {
+      "check_dams": 3,
+      "farm_ponds": 6,
+      "contour_trenches": 1200,
+      "percolation_tanks": 2,
+      "gabion_structures": 3
+    },
+    "area_sq_km": 12.1,
+    "annual_rainfall_mm": 1100,
+    "elevation_range": "450m - 900m",
+    "description": "Pioneer watershed management project in Shivalik hills"
+  },
+  {
+    "id": "anantapur",
+    "name": "Anantapur Watershed",
+    "state": "Andhra Pradesh",
+    "district": "Anantapur",
+    "lat": 14.6819,
+    "lon": 77.6006,
+    "project_type": "MGNREGA Watershed",
+    "start_year": 2019,
+    "structures": {
+      "check_dams": 6,
+      "farm_ponds": 20,
+      "contour_trenches": 2500,
+      "percolation_tanks": 5,
+      "gabion_structures": 8
+    },
+    "area_sq_km": 28.7,
+    "annual_rainfall_mm": 550,
+    "elevation_range": "300m - 520m",
+    "description": "Driest district in AP - critical watershed intervention"
+  }
+]

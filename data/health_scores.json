@@ -1,0 +1,74 @@
+{
+  "hiware_bazar": {
+    "total_score": 82,
+    "grade": "Excellent",
+    "grade_emoji": "A",
+    "vegetation_score": 30,
+    "water_score": 32,
+    "erosion_score": 15,
+    "sustainability_score": 5,
+    "recommendations": [
+      "Continue maintaining check dam #3 near stream junction",
+      "Plant fruit trees on recovered barren patches (NW zone)",
+      "Consider drip irrigation for newly cultivated areas",
+      "Install rain gauge at percolation tank #2 for monitoring"
+    ]
+  },
+  "ralegan_siddhi": {
+    "total_score": 75,
+    "grade": "Good",
+    "grade_emoji": "B",
+    "vegetation_score": 25,
+    "water_score": 28,
+    "erosion_score": 14,
+    "sustainability_score": 8,
+    "recommendations": [
+      "De-silt check dam #2 - sediment accumulation detected",
+      "Extend contour trenches to eastern slope",
+      "Monitor encroachment near south boundary"
+    ]
+  },
+  "arvari_river": {
+    "total_score": 88,
+    "grade": "Excellent",
+    "grade_emoji": "A",
+    "vegetation_score": 33,
+    "water_score": 35,
+    "erosion_score": 12,
+    "sustainability_score": 8,
+    "recommendations": [
+      "Model project - replicate practices in neighboring villages",
+      "Consider fish stocking in percolation tanks"
+    ]
+  },
+  "sukhomajri": {
+    "total_score": 55,
+    "grade": "Average",
+    "grade_emoji": "C",
+    "vegetation_score": 18,
+    "water_score": 20,
+    "erosion_score": 10,
+    "sustainability_score": 7,
+    "recommendations": [
+      "Recent project - allow 2 more monsoon cycles for full impact",
+      "Add 3 more check dams on northern drainage line",
+      "Community training needed for structure maintenance"
+    ]
+  },
+  "anantapur": {
+    "total_score": 32,
+    "grade": "Poor",
+    "grade_emoji": "F",
+    "vegetation_score": 8,
+    "water_score": 10,
+    "erosion_score": 8,
+    "sustainability_score": 6,
+    "recommendations": [
+      "URGENT: Check dam #4 appears damaged - needs field inspection",
+      "Farm ponds drying within 2 months - lining needed",
+      "Groundwater recharge not detected - deeper percolation shafts needed",
+      "Consider drought-resistant crop varieties for farmers",
+      "Additional 2000m contour trenching needed on south-facing slopes"
+    ]
+  }
+}

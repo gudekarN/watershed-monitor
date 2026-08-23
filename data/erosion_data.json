@@ -1,0 +1,82 @@
+{
+  "hiware_bazar": {
+    "before": {
+      "Very Low": 120,
+      "Low": 180,
+      "Medium": 270,
+      "High": 200,
+      "Very High": 80
+    },
+    "after": {
+      "Very Low": 250,
+      "Low": 280,
+      "Medium": 220,
+      "High": 80,
+      "Very High": 20
+    }
+  },
+  "ralegan_siddhi": {
+    "before": {
+      "Very Low": 100,
+      "Low": 160,
+      "Medium": 300,
+      "High": 230,
+      "Very High": 80
+    },
+    "after": {
+      "Very Low": 240,
+      "Low": 290,
+      "Medium": 230,
+      "High": 90,
+      "Very High": 20
+    }
+  },
+  "arvari_river": {
+    "before": {
+      "Very Low": 200,
+      "Low": 450,
+      "Medium": 900,
+      "High": 700,
+      "Very High": 330
+    },
+    "after": {
+      "Very Low": 700,
+      "Low": 900,
+      "Medium": 750,
+      "High": 150,
+      "Very High": 80
+    }
+  },
+  "sukhomajri": {
+    "before": {
+      "Very Low": 80,
+      "Low": 120,
+      "Medium": 200,
+      "High": 150,
+      "Very High": 60
+    },
+    "after": {
+      "Very Low": 160,
+      "Low": 180,
+      "Medium": 200,
+      "High": 90,
+      "Very High": 30
+    }
+  },
+  "anantapur": {
+    "before": {
+      "Very Low": 90,
+      "Low": 200,
+      "Medium": 420,
+      "High": 430,
+      "Very High": 130
+    },
+    "after": {
+      "Very Low": 100,
+      "Low": 210,
+      "Medium": 430,
+      "High": 400,
+      "Very High": 130
+    }
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "hiware_bazar": [
+    {
+      "year": 2017,
+      "water_area_ha": 1.8,
+      "ndwi_mean": -0.15
+    },
+    {
+      "year": 2018,
+      "water_area_ha": 2.5,
+      "ndwi_mean": -0.08
+    },
+    {
+      "year": 2019,
+      "water_area_ha": 3.2,
+      "ndwi_mean": -0.02
+    },
+    {
+      "year": 2020,
+      "water_area_ha": 5.8,
+      "ndwi_mean": 0.1
+    },
+    {
+      "year": 2021,
+      "water_area_ha": 8.2,
+      "ndwi_mean": 0.18
+    },
+    {
+      "year": 2022,
+      "water_area_ha": 10.5,
+      "ndwi_mean": 0.25
+    },
+    {
+      "year": 2023,
+      "water_area_ha": 11.8,
+      "ndwi_mean": 0.3
+    },
+    {
+      "year": 2024,
+      "water_area_ha": 12.8,
+      "ndwi_mean": 0.35
+    }
+  ],
+  "ralegan_siddhi": [
+    {
+      "year": 2017,
+      "water_area_ha": 2.2,
+      "ndwi_mean": -0.12
+    },
+    {
+      "year": 2018,
+      "water_area_ha": 3.0,
+      "ndwi_mean": -0.05
+    },
+    {
+      "year": 2019,
+      "water_area_ha": 4.5,
+      "ndwi_mean": 0.05
+    },
+    {
+      "year": 2020,
+      "water_area_ha": 6.8,
+      "ndwi_mean": 0.12
+    },
+    {
+      "year": 2021,
+      "water_area_ha": 9.0,
+      "ndwi_mean": 0.2
+    },
+    {
+      "year": 2022,
+      "water_area_ha": 11.2,
+      "ndwi_mean": 0.27
+    },
+    {
+      "year": 2023,
+      "water_area_ha": 13.0,
+      "ndwi_mean": 0.32
+    },
+    {
+      "year": 2024,
+      "water_area_ha": 14.5,
+      "ndwi_mean": 0.38
+    }
+  ],
+  "arvari_river": [
+    {
+      "year": 2017,
+      "water_area_ha": 5.5,
+      "ndwi_mean": 0.02
+    },
+    {
+      "year": 2018,
+      "water_area_ha": 8.0,
+      "ndwi_mean": 0.1
+    },
+    {
+      "year": 2019,
+      "water_area_ha": 12.0,
+      "ndwi_mean": 0.18
+    },
+    {
+      "year": 2020,
+      "water_area_ha": 18.5,
+      "ndwi_mean": 0.26
+    },
+    {
+      "year": 2021,
+      "water_area_ha": 24.0,
+      "ndwi_mean": 0.33
+    },
+    {
+      "year": 2022,
+      "water_area_ha": 30.0,
+      "ndwi_mean": 0.4
+    },
+    {
+      "year": 2023,
+      "water_area_ha": 35.5,
+      "ndwi_mean": 0.46
+    },
+    {
+      "year": 2024,
+      "water_area_ha": 40.2,
+      "ndwi_mean": 0.51
+    }
+  ],
+  "sukhomajri": [
+    {
+      "year": 2020,
+      "water_area_ha": 1.5,
+      "ndwi_mean": -0.1
+    },
+    {
+      "year": 2021,
+      "water_area_ha": 2.2,
+      "ndwi_mean": -0.04
+    },
+    {
+      "year": 2022,
+      "water_area_ha": 3.0,
+      "ndwi_mean": 0.04
+    },
+    {
+      "year": 2023,
+      "water_area_ha": 3.8,
+      "ndwi_mean": 0.1
+    },
+    {
+      "year": 2024,
+      "water_area_ha": 4.5,
+      "ndwi_mean": 0.15
+    }
+  ],
+  "anantapur": [
+    {
+      "year": 2017,
+      "water_area_ha": 0.8,
+      "ndwi_mean": -0.3
+    },
+    {
+      "year": 2018,
+      "water_area_ha": 1.0,
+      "ndwi_mean": -0.28
+    },
+    {
+      "year": 2019,
+      "water_area_ha": 1.2,
+      "ndwi_mean": -0.25
+    },
+    {
+      "year": 2020,
+      "water_area_ha": 0.9,
+      "ndwi_mean": -0.29
+    },
+    {
+      "year": 2021,
+      "water_area_ha": 1.1,
+      "ndwi_mean": -0.26
+    },
+    {
+      "year": 2022,
+      "water_area_ha": 1.3,
+      "ndwi_mean": -0.24
+    },
+    {
+      "year": 2023,
+      "water_area_ha": 1.5,
+      "ndwi_mean": -0.22
+    },
+    {
+      "year": 2024,
+      "water_area_ha": 1.4,
+      "ndwi_mean": -0.23
+    }
+  ]
+}

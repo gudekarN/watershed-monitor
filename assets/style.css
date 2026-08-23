@@ -1,0 +1,570 @@
+/* =============================================================================
+   AquaVeda — Watershed Monitor  |  Global Stylesheet
+   ============================================================================= */
+
+/* ── Google Font ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ── Root custom properties ──────────────────────────────────────────────── */
+:root {
+    --aqua-primary:    #1d6fa5;
+    --aqua-accent:     #22c55e;
+    --aqua-warn:       #f59e0b;
+    --aqua-danger:     #ef4444;
+    --aqua-muted:      #94a3b8;
+    --aqua-bg:         #f8fafc;
+    --aqua-card-bg:    #ffffff;
+    --aqua-border:     #e2e8f0;
+    --aqua-radius:     12px;
+    --aqua-shadow:     0 2px 12px rgba(0,0,0,0.07);
+    --aqua-shadow-lg:  0 8px 32px rgba(0,0,0,0.12);
+    --sidebar-bg:      #1e2635;
+    --sidebar-text:    #c8d3e0;
+}
+
+/* ── Global font ─────────────────────────────────────────────────────────── */
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* =============================================================================
+   MAIN CONTENT AREA
+   ============================================================================= */
+
+/* Reduce excessive top padding Streamlit adds */
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 1400px;
+}
+
+/* Remove extra margin from stApp header */
+header[data-testid="stHeader"] {
+    background: transparent;
+}
+
+/* =============================================================================
+   SIDEBAR
+   ============================================================================= */
+
+[data-testid="stSidebar"] {
+    background-color: var(--sidebar-bg) !important;
+}
+
+[data-testid="stSidebar"] * {
+    color: var(--sidebar-text) !important;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #ffffff !important;
+}
+
+/* Sidebar selectbox / checkbox borders */
+[data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div {
+    background-color: #2a3447 !important;
+    border-color: #3d4f6b !important;
+    color: #e2e8f0 !important;
+    border-radius: 8px !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stCheckbox"] label {
+    color: var(--sidebar-text) !important;
+    font-size: 0.9rem;
+}
+
+/* Sidebar divider */
+[data-testid="stSidebar"] hr {
+    border-color: #2f3d54 !important;
+    margin: 0.8rem 0 !important;
+}
+
+/* Sidebar button */
+[data-testid="stSidebar"] button[kind="secondary"] {
+    background: linear-gradient(135deg, #1d6fa5, #1a5c8a) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: opacity 0.2s ease !important;
+}
+[data-testid="stSidebar"] button[kind="secondary"]:hover {
+    opacity: 0.88 !important;
+}
+
+/* =============================================================================
+   METRIC CARDS
+   ============================================================================= */
+
+[data-testid="stMetric"] {
+    background: var(--aqua-card-bg);
+    border: 1px solid var(--aqua-border);
+    border-radius: var(--aqua-radius);
+    padding: 1rem 1.2rem !important;
+    box-shadow: var(--aqua-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-testid="stMetric"]:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--aqua-shadow-lg);
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+[data-testid="stMetricValue"] {
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    line-height: 1.2;
+}
+
+[data-testid="stMetricDelta"] {
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    border-radius: 20px;
+    padding: 1px 6px;
+}
+
+/* =============================================================================
+   MAP CONTAINER  (Folium iframe)
+   ============================================================================= */
+
+iframe {
+    border-radius: var(--aqua-radius) !important;
+    box-shadow: var(--aqua-shadow-lg) !important;
+    border: 1px solid var(--aqua-border) !important;
+}
+
+/* Wrapper div streamlit-folium renders into */
+[data-testid="stIframe"] {
+    border-radius: var(--aqua-radius);
+    overflow: hidden;
+    box-shadow: var(--aqua-shadow-lg);
+}
+
+/* =============================================================================
+   TABS
+   ============================================================================= */
+
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    border-bottom: 2px solid var(--aqua-border) !important;
+    gap: 4px;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab"] {
+    font-weight: 500 !important;
+    font-size: 0.88rem !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px 8px 0 0 !important;
+    color: #64748b !important;
+    border-bottom: 3px solid transparent !important;
+    transition: color 0.2s ease, border-color 0.2s ease !important;
+}
+
+[data-testid="stTabs"] [aria-selected="true"] {
+    color: var(--aqua-primary) !important;
+    border-bottom: 3px solid var(--aqua-primary) !important;
+    background: rgba(29, 111, 165, 0.06) !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+    color: #334155 !important;
+    background: rgba(0,0,0,0.03) !important;
+}
+
+/* Tab panel top padding */
+[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+    padding-top: 1rem !important;
+}
+
+/* =============================================================================
+   PHOTO / FIELD CARDS  (rendered via unsafe_allow_html)
+   ============================================================================= */
+
+.photo-card {
+    border: 1px solid var(--aqua-border);
+    border-radius: var(--aqua-radius);
+    padding: 14px;
+    margin-bottom: 12px;
+    background: var(--aqua-card-bg);
+    box-shadow: var(--aqua-shadow);
+    min-height: 160px;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    cursor: default;
+}
+
+.photo-card:hover {
+    box-shadow: var(--aqua-shadow-lg);
+    transform: translateY(-3px);
+}
+
+.photo-card-icon {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+}
+
+.photo-card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.photo-card-meta {
+    font-size: 0.78rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+/* ── Status badges ────────────────────────────────────────────────────────── */
+
+.status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+}
+
+.status-functional {
+    background: #28a745;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.status-needs-repair {
+    background: #ffc107;
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.status-damaged {
+    background: #dc3545;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.status-dry {
+    background: #6c757d;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+/* =============================================================================
+   HEALTH / GAUGE SECTION
+   ============================================================================= */
+
+/* Center the Plotly gauge */
+[data-testid="stPlotlyChart"] {
+    display: flex;
+    justify-content: center;
+}
+
+/* Grade badge (used in inline HTML) */
+.grade-badge {
+    display: inline-block;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+.grade-excellent { background: #22c55e; color: white; }
+.grade-good      { background: #84cc16; color: white; }
+.grade-average   { background: #f59e0b; color: white; }
+.grade-poor      { background: #ef4444; color: white; }
+
+/* Big score number */
+.health-score-number {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    line-height: 1;
+}
+
+/* Progress bar labels */
+.progress-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 2px;
+    margin-top: 8px;
+}
+
+/* =============================================================================
+   RECOMMENDATION CARDS
+   ============================================================================= */
+
+/* Override Streamlit's default warning/info boxes for recommendations */
+div[data-testid="stAlert"] {
+    border-radius: 10px !important;
+    padding: 0.7rem 1rem !important;
+    margin-bottom: 0.6rem !important;
+    font-size: 0.88rem !important;
+}
+
+/* Warning — orange left accent */
+div[data-testid="stAlert"][data-type="warning"] {
+    border-left: 4px solid #f59e0b !important;
+    background: #fffbeb !important;
+    color: #78350f !important;
+}
+
+/* Info — blue left accent */
+div[data-testid="stAlert"][data-type="info"] {
+    border-left: 4px solid #3b82f6 !important;
+    background: #eff6ff !important;
+    color: #1e3a5f !important;
+}
+
+/* =============================================================================
+   EXPANDER (Detailed Analysis)
+   ============================================================================= */
+
+[data-testid="stExpander"] {
+    border: 1px solid var(--aqua-border) !important;
+    border-radius: var(--aqua-radius) !important;
+    box-shadow: var(--aqua-shadow) !important;
+    margin-top: 0.5rem;
+}
+
+[data-testid="stExpander"] summary {
+    color: #e2e8f0 !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    background: rgba(29, 111, 165, 0.08) !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 8px !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    background: rgba(29, 111, 165, 0.18) !important;
+    color: #ffffff !important;
+}
+
+[data-testid="stExpander"] summary p {
+    color: #e2e8f0 !important;
+    margin: 0 !important;
+}
+
+/* =============================================================================
+   DATAFRAMES
+   ============================================================================= */
+[data-testid="stDataFrame"] {
+    border-radius: var(--aqua-radius) !important;
+    overflow: hidden;
+    border: 1px solid var(--aqua-border) !important;
+    box-shadow: var(--aqua-shadow) !important;
+}
+
+/* =============================================================================
+   PLOTLY CHARTS
+   ============================================================================= */
+
+[data-testid="stPlotlyChart"] > div {
+    border-radius: var(--aqua-radius) !important;
+    overflow: hidden;
+}
+
+/* =============================================================================
+   DIVIDER
+   ============================================================================= */
+
+hr {
+    border: none !important;
+    border-top: 1px solid var(--aqua-border) !important;
+    margin: 1.2rem 0 !important;
+}
+
+/* =============================================================================
+   FILE UPLOADER
+   ============================================================================= */
+
+[data-testid="stFileUploader"] {
+    border: 2px dashed var(--aqua-border) !important;
+    border-radius: var(--aqua-radius) !important;
+    padding: 0.8rem !important;
+    background: #f8fafc !important;
+    transition: border-color 0.2s ease;
+}
+
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--aqua-primary) !important;
+}
+
+/* =============================================================================
+   DEMO BANNER  (stAlert at top)
+   ============================================================================= */
+
+div[data-testid="stAlert"][data-type="info"]:first-of-type {
+    border-left: 4px solid #1d6fa5 !important;
+    background: linear-gradient(90deg, #eff6ff, #f8faff) !important;
+    border-radius: var(--aqua-radius) !important;
+    font-size: 0.9rem !important;
+    color: #1e3a5f !important;
+}
+
+/* =============================================================================
+   FOOTER / CAPTION
+   ============================================================================= */
+
+[data-testid="stCaptionContainer"],
+.stCaption {
+    text-align: center !important;
+    color: #94a3b8 !important;
+    font-size: 0.78rem !important;
+    margin-top: 1rem !important;
+    letter-spacing: 0.02em;
+}
+
+/* =============================================================================
+   SCROLLBAR  (Webkit)
+   ============================================================================= */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* =============================================================================
+   RESPONSIVE  (narrow screens)
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    [data-testid="stMetricValue"] {
+        font-size: 1.4rem !important;
+    }
+    .block-container {
+        padding-top: 0.75rem !important;
+    }
+}
+
+/* =============================================================================
+   ISSUE 5: FILE UPLOADER
+   ============================================================================= */
+[data-testid="stFileUploader"] section {
+    background: #1e2635 !important;
+    border: 2px dashed #3d4f6b !important;
+    border-radius: 10px !important;
+}
+
+[data-testid="stFileUploader"] section > div {
+    color: #e2e8f0 !important;
+}
+
+[data-testid="stFileUploader"] button {
+    background: #1d6fa5 !important;
+    color: white !important;
+    border: none !important;
+}
+
+[data-testid="stFileUploader"] small {
+    color: #94a3b8 !important;
+}
+
+/* =============================================================================
+   ISSUE 6: SIDEBAR LIST
+   ============================================================================= */
+[data-testid="stSidebar"] ul {
+    padding-left: 1rem !important;
+    margin: 0.5rem 0 !important;
+}
+
+[data-testid="stSidebar"] li {
+    margin: 0.35rem 0 !important;
+    line-height: 1.5 !important;
+    color: #cbd5e1 !important;
+    font-size: 0.9rem !important;
+}
+
+[data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
+    margin-top: 1.25rem !important;
+    margin-bottom: 0.5rem !important;
+    font-size: 0.95rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #94a3b8 !important;
+    font-weight: 600 !important;
+}
+
+/* =============================================================================
+   ISSUE 7: TAB HEADERS
+   ============================================================================= */
+[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+    padding-top: 1.5rem !important;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab"] {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.9rem !important;
+}
+
+/* =============================================================================
+   ISSUE 8: METRIC CARDS
+   ============================================================================= */
+[data-testid="stMetric"] {
+    min-height: 130px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+
+/* =============================================================================
+   ISSUE 9: SECTION DIVIDERS
+   ============================================================================= */
+hr {
+    margin: 1.5rem 0 !important;
+    border-color: #2f3d54 !important;
+}
+
+.main .block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 3rem !important;
+    max-width: 1400px !important;
+}
+
+/* =============================================================================
+   ISSUE 10: DATAFRAME
+   ============================================================================= */
+[data-testid="stDataFrame"] {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border: 1px solid #2f3d54 !important;
+}
+
+[data-testid="stDataFrame"] th {
+    background: #1e2635 !important;
+    color: #94a3b8 !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+}

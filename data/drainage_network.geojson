@@ -1,0 +1,162 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hiware Main Stream",
+        "stream_order": 3,
+        "length_km": 5.2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            74.55,
+            19.375
+          ],
+          [
+            74.549,
+            19.365
+          ],
+          [
+            74.548,
+            19.355
+          ],
+          [
+            74.55,
+            19.345
+          ],
+          [
+            74.551,
+            19.335
+          ],
+          [
+            74.55,
+            19.328
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "East Tributary 1",
+        "stream_order": 2,
+        "length_km": 2.8
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            74.572,
+            19.36
+          ],
+          [
+            74.562,
+            19.358
+          ],
+          [
+            74.553,
+            19.355
+          ],
+          [
+            74.548,
+            19.355
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "East Tributary 2",
+        "stream_order": 1,
+        "length_km": 1.9
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            74.568,
+            19.34
+          ],
+          [
+            74.56,
+            19.342
+          ],
+          [
+            74.552,
+            19.344
+          ],
+          [
+            74.55,
+            19.345
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "West Tributary",
+        "stream_order": 2,
+        "length_km": 3.1
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            74.527,
+            19.365
+          ],
+          [
+            74.534,
+            19.362
+          ],
+          [
+            74.54,
+            19.36
+          ],
+          [
+            74.548,
+            19.358
+          ],
+          [
+            74.548,
+            19.355
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "North Feeder Channel",
+        "stream_order": 1,
+        "length_km": 1.4
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            74.545,
+            19.374
+          ],
+          [
+            74.546,
+            19.37
+          ],
+          [
+            74.548,
+            19.366
+          ],
+          [
+            74.549,
+            19.365
+          ]
+        ]
+      }
+    }
+  ]
+}
