@@ -208,7 +208,22 @@ with st.sidebar:
             st.warning("Please run Analysis first.")
         elif generate_watershed_report:
             with st.spinner("Generating PDF..."):
-                pdf_bytes = generate_watershed_report(st.session_state.analysis_results)
+                res = st.session_state.analysis_results
+                
+                # Extract individual components safely with fallbacks
+                watershed_info = res.get('watershed_info', selected_watershed if 'selected_watershed' in locals() else {})
+                change_data = res.get('change_data', {})
+                health_score = res.get('health_score', {})
+                timeseries_data = res.get('timeseries_data', res.get('timeseries', {}))
+                photos_data = res.get('photos_data', res.get('photos', []))
+                
+                pdf_bytes = generate_watershed_report(
+                    watershed_info,
+                    change_data,
+                    health_score,
+                    timeseries_data,
+                    photos_data
+                )
                 st.download_button(
                     "📥 Download PDF Report", 
                     pdf_bytes, 
