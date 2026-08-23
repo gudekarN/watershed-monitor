@@ -50,6 +50,23 @@ except ImportError:
 # ── Module-level logger ───────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
 
+
+def _ee_ready() -> bool:
+    """Check if Google Earth Engine is initialized and ready to execute queries.
+
+    Returns True only when the ``ee`` package is importable **and** a credential
+    object has been attached (i.e. ``ee.Initialize()`` has been called
+    successfully in this process).  Safe to call at any time — never raises.
+    """
+    if not _GEE_IMPORT_OK or ee is None:
+        return False
+    try:
+        # ee.data._credentials is set by Initialize(); None/missing means not ready
+        return ee.data._credentials is not None
+    except Exception:
+        return False
+
+
 # ── Fallback monthly rainfall sample (used when GEE unavailable) ──────────────
 _SAMPLE_MONTHLY_RAIN = [
     {"month": 1,  "month_name": "Jan", "rainfall_mm": 4},

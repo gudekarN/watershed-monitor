@@ -16,6 +16,60 @@ EE_PROJECT_ID = os.getenv("EE_PROJECT_ID")
 GEE_AVAILABLE = False
 DEMO_MODE = True
 
+# List of 5 sample watersheds for the dashboard
+SAMPLE_WATERSHEDS = [
+    {
+        "id": "hiware_bazar",
+        "name": "Hiware Bazar, Maharashtra",
+        "lat": 19.3516,
+        "lon": 74.5535,
+        "state": "Maharashtra",
+        "district": "Ahmednagar",
+        "project_type": "Integrated Watershed Development",
+        "start_year": 2019
+    },
+    {
+        "id": "ralegan_siddhi",
+        "name": "Ralegan Siddhi, Maharashtra",
+        "lat": 18.8752,
+        "lon": 74.4960,
+        "state": "Maharashtra",
+        "district": "Ahmednagar",
+        "project_type": "Community Watershed Management",
+        "start_year": 2018
+    },
+    {
+        "id": "arvari_river",
+        "name": "Arvari River Basin, Rajasthan",
+        "lat": 27.5530,
+        "lon": 76.6346,
+        "state": "Rajasthan",
+        "district": "Alwar",
+        "project_type": "River Rejuvenation",
+        "start_year": 2017
+    },
+    {
+        "id": "sukhomajri",
+        "name": "Sukhomajri, Haryana",
+        "lat": 30.7400,
+        "lon": 76.8920,
+        "state": "Haryana",
+        "district": "Panchkula",
+        "project_type": "Soil & Water Conservation",
+        "start_year": 2020
+    },
+    {
+        "id": "anantapur",
+        "name": "Anantapur Watershed, Andhra Pradesh",
+        "lat": 14.6819,
+        "lon": 77.6006,
+        "state": "Andhra Pradesh",
+        "district": "Anantapur",
+        "project_type": "MGNREGA Watershed",
+        "start_year": 2019
+    }
+]
+
 # Dictionary of 5 sample watershed locations in India
 WATERSHEDS = {
     "Hiware Bazar": {
