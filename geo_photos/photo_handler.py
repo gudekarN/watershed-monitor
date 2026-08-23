@@ -23,7 +23,8 @@ import logging
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,124 @@ def _dms_to_decimal(dms_values: Any, ref: str) -> float:
     if str(ref).strip().upper() in ("S", "W"):
         decimal = -decimal
     return decimal
+
+
+def _haversine_distance_m(
+    lat1: float,
+    lon1: float,
+    lat2: float,
+    lon2: float,
+) -> float:
+    """Return great-circle distance between two GPS points in metres."""
+    earth_radius_m = 6_371_000.0
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = (
+        math.sin(delta_phi / 2.0) ** 2
+        + math.cos(phi1)
+        * math.cos(phi2)
+        * math.sin(delta_lambda / 2.0) ** 2
+    )
+
+    return earth_radius_m * 2.0 * math.atan2(
+        math.sqrt(a),
+        math.sqrt(max(0.0, 1.0 - a)),
+    )
+
+
+def find_nearest_reference_observation(
+    lat: float,
+    lon: float,
+    watershed_id: str,
+    max_distance_m: float = 500.0,
+) -> Dict[str, Any]:
+    """
+    Match a GPS coordinate to the nearest known sample field observation.
+
+    This is a prototype/demo reference match, not an authoritative structure
+    registry. The reference records come from sample_photo_metadata.json.
+
+    Returns:
+        {
+            "matched": True/False,
+            "distance_m": float,
+            "reference": {...},
+            "match_type": "sample_field_observation"
+        }
+
+    A match is accepted only when the nearest observation is within
+    max_distance_m.
+    """
+    result: Dict[str, Any] = {
+        "matched": False,
+        "distance_m": None,
+        "reference": None,
+        "match_type": "sample_field_observation",
+    }
+
+    if lat is None or lon is None or not watershed_id:
+        return result
+
+    if not os.path.isfile(_SAMPLE_PHOTOS_PATH):
+        result["error"] = "sample_photo_metadata.json not found"
+        return result
+
+    try:
+        with open(_SAMPLE_PHOTOS_PATH, "r", encoding="utf-8") as fh:
+            sample_records = json.load(fh)
+
+        if not isinstance(sample_records, list):
+            return result
+
+        candidates = [
+            item
+            for item in sample_records
+            if item.get("watershed_id") == watershed_id
+            and item.get("lat") is not None
+            and item.get("lon") is not None
+        ]
+
+        if not candidates:
+            result["error"] = "No reference observations for watershed"
+            return result
+
+        nearest = None
+        nearest_distance = float("inf")
+
+        for candidate in candidates:
+            distance = _haversine_distance_m(
+                float(lat),
+                float(lon),
+                float(candidate["lat"]),
+                float(candidate["lon"]),
+            )
+
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest = candidate
+
+        if nearest is None:
+            return result
+
+        result["distance_m"] = round(nearest_distance, 1)
+
+        if nearest_distance <= max_distance_m:
+            result["matched"] = True
+            result["reference"] = nearest
+
+        return result
+
+    except Exception as exc:
+        logger.error(
+            "find_nearest_reference_observation failed: %s",
+            exc,
+        )
+        result["error"] = str(exc)
+        return result
 
 
 def extract_gps_from_photo(image_file: Any) -> Dict[str, Any]:
@@ -237,8 +356,23 @@ def save_photo_entry(
         "water_level":   metadata.get("water_level", ""),
         "date":          metadata.get("date", datetime.now().strftime("%Y-%m-%d")),
         "description":   metadata.get("description", ""),
-        "verified":      False,
+        "verified":      bool(metadata.get("verified", False)),
         "source":        "uploaded",
+
+        # GPS/reference matching metadata.
+        "verification_status": metadata.get(
+            "verification_status",
+            "pending_reference_match",
+        ),
+        "reference_observation_id": metadata.get(
+            "reference_observation_id"
+        ),
+        "reference_distance_m": metadata.get(
+            "reference_distance_m"
+        ),
+        "reference_match_type": metadata.get(
+            "reference_match_type"
+        ),
     }
 
     if photo_base64:

@@ -86,12 +86,15 @@ except Exception:
 
 try:
     from geo_photos.photo_handler import (
-        extract_gps_from_photo, create_photo_thumbnail, save_photo_entry,
-        load_all_photos
+        extract_gps_from_photo, create_photo_thumbnail,
+        find_nearest_reference_observation,
+        save_photo_entry, load_all_photos
     )
 except Exception:
     def extract_gps_from_photo(*a, **kw): return {"has_gps": False}
     def create_photo_thumbnail(*a, **kw): return None
+    def find_nearest_reference_observation(*a, **kw):
+        return {"matched": False, "error": "photo matcher unavailable"}
     def save_photo_entry(*a, **kw): return {}
     def load_all_photos(*a, **kw): return []
 
@@ -1391,16 +1394,129 @@ with tab_photos:
                         if st.button("💾 Save Photo Entry", key=f"save_{uploaded_file.name}"):
                             try:
                                 from datetime import datetime
-                                save_photo_entry({
-                                    'lat': lat_input, 'lon': lon_input,
-                                    'type': structure_type, 'status': status,
-                                    'water_level': f"{water_level}%",
-                                    'description': notes,
-                                    'date': datetime.now().strftime('%Y-%m-%d'),
-                                    'watershed_id': chosen_id,
-                                }, chosen_id)
-                                st.success("Photo saved! Marker added to map.")
+
+                                # -------------------------------------------------
+                                # 1. Generate thumbnail for map popup / log
+                                # -------------------------------------------------
+                                photo_thumbnail = create_photo_thumbnail(uploaded_file)
+
+                                # -------------------------------------------------
+                                # 2. Match GPS against the sample field
+                                #    observations for this watershed.
+                                # -------------------------------------------------
+                                match_result = {
+                                    "matched": False,
+                                    "distance_m": None,
+                                    "reference": None,
+                                    "match_type": None,
+                                }
+
+                                if gps_data.get("has_gps"):
+                                    match_result = find_nearest_reference_observation(
+                                        lat_input,
+                                        lon_input,
+                                        chosen_id,
+                                        max_distance_m=500.0,
+                                    )
+
+                                reference = match_result.get("reference") or {}
+
+                                # A proximity match alone is not enough to call
+                                # the field observation verified. Require the
+                                # selected structure type to match too.
+                                type_matches = (
+                                    bool(reference)
+                                    and str(reference.get("type", "")).strip().lower()
+                                    == str(structure_type).strip().lower()
+                                )
+
+                                if match_result.get("matched") and type_matches:
+                                    verification_status = "reference_match"
+                                    reference_observation_id = reference.get("id")
+                                    reference_distance_m = match_result.get("distance_m")
+
+                                    st.success(
+                                        f"📍 GPS reference match: "
+                                        f"{reference.get('type', 'Observation')} "
+                                        f"#{reference.get('id', 'N/A')} "
+                                        f"at {reference_distance_m:.1f} m",
+                                        icon="✅",
+                                    )
+                                    st.caption(
+                                        "Prototype reference match only. "
+                                        "This does not automatically verify the field report."
+                                    )
+
+                                elif match_result.get("matched") and not type_matches:
+                                    verification_status = "reference_type_mismatch"
+                                    reference_observation_id = reference.get("id")
+                                    reference_distance_m = match_result.get("distance_m")
+
+                                    st.warning(
+                                        f"📍 Nearest reference is "
+                                        f"{reference.get('type', 'Unknown')} "
+                                        f"(not {structure_type}) "
+                                        f"at {reference_distance_m:.1f} m.",
+                                        icon="⚠️",
+                                    )
+
+                                elif gps_data.get("has_gps"):
+                                    verification_status = "no_reference_match"
+                                    reference_observation_id = None
+                                    reference_distance_m = match_result.get("distance_m")
+
+                                    st.info(
+                                        "📍 No matching reference observation found "
+                                        "within 500 m.",
+                                        icon="ℹ️",
+                                    )
+
+                                else:
+                                    verification_status = "gps_unavailable"
+                                    reference_observation_id = None
+                                    reference_distance_m = None
+
+                                    st.warning(
+                                        "GPS unavailable — photo saved without "
+                                        "reference matching.",
+                                        icon="⚠️",
+                                    )
+
+                                # -------------------------------------------------
+                                # 3. Persist photo + reference-match metadata.
+                                #    verified remains False unless explicitly
+                                #    provided by the caller.
+                                # -------------------------------------------------
+                                save_photo_entry(
+                                    {
+                                        "lat": lat_input,
+                                        "lon": lon_input,
+                                        "type": structure_type,
+                                        "status": status,
+                                        "water_level": f"{water_level}%",
+                                        "description": notes,
+                                        "date": datetime.now().strftime("%Y-%m-%d"),
+                                        "watershed_id": chosen_id,
+                                        "verified": False,
+                                        "verification_status": verification_status,
+                                        "reference_observation_id": reference_observation_id,
+                                        "reference_distance_m": reference_distance_m,
+                                        "reference_match_type": (
+                                            "sample_field_observation"
+                                            if reference
+                                            else None
+                                        ),
+                                    },
+                                    chosen_id,
+                                    photo_base64=photo_thumbnail,
+                                )
+
+                                st.success(
+                                    "Photo saved successfully.",
+                                    icon="💾",
+                                )
                                 st.rerun()
+
                             except Exception as _save_err:
                                 st.error(f"Could not save photo: {_save_err}")
                 except Exception as _photo_err:
@@ -1433,7 +1549,25 @@ with tab_photos:
                         <br><span style="background:{status_color}; color:white;
                                   padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600;">
                         {photo.get('status', '')}</span>
-                        <br><span style="font-size:12px; color:#cbd5e1">{photo.get('description', '')[:60]}</span>
+
+                        <br><span style="font-size:11px; color:#94a3b8;">
+                        Verification:
+                        {photo.get('verification_status', 'not_matched').replace('_', ' ').title()}
+                        </span>
+
+                        {
+                            (
+                                f"<br><span style='font-size:11px; color:#94a3b8;'>"
+                                f"📍 Reference distance: {float(photo.get('reference_distance_m')):.1f} m"
+                                f"</span>"
+                            )
+                            if photo.get("reference_distance_m") is not None
+                            else ""
+                        }
+
+                        <br><span style="font-size:12px; color:#cbd5e1">
+                        {photo.get('description', '')[:60]}
+                        </span>
                     </div>
                     """, unsafe_allow_html=True)
         else:
