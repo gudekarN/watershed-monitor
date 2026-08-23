@@ -507,20 +507,78 @@ def create_photo_popup_html(photo_data: Dict[str, Any]) -> str:
             f'style="width:100%; border-radius:4px; margin-bottom:6px;" />'
         )
 
+    verification_status = photo_data.get(
+        "verification_status",
+        "not_matched",
+    )
+
+    reference_distance = photo_data.get("reference_distance_m")
+    reference_id = photo_data.get("reference_observation_id")
+    reference_match_type = photo_data.get("reference_match_type")
+
+    verification_label = (
+        verification_status.replace("_", " ").title()
+        if verification_status
+        else "Not Matched"
+    )
+
+    if verification_status == "reference_match":
+        verification_bg = "#dcfce7"
+        verification_color = "#166534"
+    elif verification_status == "reference_type_mismatch":
+        verification_bg = "#fef3c7"
+        verification_color = "#92400e"
+    elif verification_status in ("no_reference_match", "gps_unavailable"):
+        verification_bg = "#f1f5f9"
+        verification_color = "#475569"
+    else:
+        verification_bg = "#f1f5f9"
+        verification_color = "#475569"
+
+    reference_html = ""
+
+    if reference_distance is not None:
+        try:
+            reference_html += (
+                f'<br><span style="font-size:11px; color:#666;">'
+                f'📏 Reference distance: {float(reference_distance):.1f} m'
+                f'</span>'
+            )
+        except (TypeError, ValueError):
+            pass
+
+    if reference_id is not None:
+        reference_html += (
+            f'<br><span style="font-size:11px; color:#666;">'
+            f'🔎 Reference observation: #{reference_id}'
+            f'</span>'
+        )
+
+    if reference_match_type:
+        reference_html += (
+            f'<br><span style="font-size:10px; color:#888;">'
+            f'Source: {reference_match_type.replace("_", " ").title()}'
+            f'</span>'
+        )
+
     html = f"""
 <div style="width:260px; font-family:Arial, sans-serif; font-size:13px;">
   {thumbnail_html}
+
   <h4 style="margin:0 0 4px 0; color:#1a1a2e;">
     {photo_data.get('type', 'Structure')}
   </h4>
+
   <p style="margin:0 0 4px 0; color:#888; font-size:11px;">
     📍 {lat:.4f}, {lon:.4f}&nbsp;&nbsp;
     📅 {photo_data.get('date', 'N/A')}
     {water_level_html}
   </p>
+
   <p style="margin:4px 0 6px 0; color:#333;">
     {photo_data.get('description', '')}
   </p>
+
   <span style="
     background:{badge_bg};
     color:{badge_color};
@@ -530,7 +588,27 @@ def create_photo_popup_html(photo_data: Dict[str, Any]) -> str:
     font-weight:600;">
     {status}
   </span>
-  {'<span style="margin-left:6px; font-size:10px; color:#888;">✓ Verified</span>' if photo_data.get('verified') else ''}
+
+  <div style="
+    margin-top:8px;
+    padding:7px;
+    background:{verification_bg};
+    color:{verification_color};
+    border-radius:6px;
+    font-size:11px;
+    font-weight:600;">
+    📍 Verification: {verification_label}
+    {reference_html}
+  </div>
+
+  {{
+      '<span style="display:block; margin-top:6px; font-size:10px; color:#888;">'
+      '✓ Manually verified'
+      '</span>'
+      if photo_data.get("verified")
+      else ''
+  }}
+
 </div>
 """.strip()
 
