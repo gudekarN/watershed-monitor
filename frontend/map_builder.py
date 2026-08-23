@@ -115,38 +115,32 @@ def create_base_map(
         logger.error("create_base_map: folium not available.")
         return None
 
+    # NOTE: folium.Map already adds OpenStreetMap as the default base tile.
+    # We must NOT call TileLayer("openstreetmap") again — it would duplicate
+    # the entry in LayerControl.
     m = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=zoom,
         control_scale=True,
+        tiles="OpenStreetMap",   # explicit default label
     )
 
-    # OpenStreetMap is the default (added by folium automatically, but we
-    # rename it so it appears in the LayerControl with a consistent label)
-    folium.TileLayer("openstreetmap", name="OpenStreetMap").add_to(m)
-
-    # Esri World Imagery (no API key required)
+    # Esri World Imagery (satellite, no API key required)
     folium.TileLayer(
         tiles=(
             "https://server.arcgisonline.com/ArcGIS/rest/services/"
             "World_Imagery/MapServer/tile/{z}/{y}/{x}"
         ),
-        attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, "
-             "GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community",
-        name="Satellite Imagery",
+        attr="Tiles &copy; Esri",
+        name="Satellite",
         overlay=False,
         control=True,
     ).add_to(m)
 
-    # OpenTopoMap
+    # OpenTopoMap (terrain / contours)
     folium.TileLayer(
         tiles="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-        attr=(
-            'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, '
-            '<a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; '
-            '<a href="https://opentopomap.org">OpenTopoMap</a> '
-            '(<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-        ),
+        attr='Map data &copy; OpenStreetMap contributors | OpenTopoMap (CC-BY-SA)',
         name="Terrain",
         overlay=False,
         control=True,
@@ -610,9 +604,9 @@ def build_complete_map(
     if show_layers.get("NDVI Legend", True):
         add_ndvi_legend(m)
 
-    # -- 8. Layer control -----------------------------------------------------
+    # -- 8. Layer control (collapsed to keep map clean) ----------------------
     try:
-        folium.LayerControl(collapsed=False).add_to(m)
+        folium.LayerControl(collapsed=True).add_to(m)
     except Exception as exc:
         logger.warning("build_complete_map: LayerControl failed: %s", exc)
 

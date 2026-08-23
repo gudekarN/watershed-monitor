@@ -467,6 +467,12 @@ def generate_change_summary(
             "generate_change_summary: GEE not ready, returning full demo data."
         )
         demo["_source"] = "demo"
+        demo["_section_sources"] = {
+            "vegetation": "demo",
+            "water":      "demo",
+            "erosion":    "demo",
+            "landuse":    "demo",
+        }
         return demo
 
     # -------------------------------------------------------------------------
@@ -501,9 +507,17 @@ def generate_change_summary(
             "generate_change_summary: image fetch failed, returning full demo data."
         )
         demo["_source"] = "demo"
+        demo["_section_sources"] = {
+            "vegetation": "demo",
+            "water":      "demo",
+            "erosion":    "demo",
+            "landuse":    "demo",
+        }
         return demo
 
     summary: Dict[str, Any] = {}
+    # Per-section source tracking — maps section name to "gee" or "demo"
+    section_sources: Dict[str, str] = {}
 
     # -------------------------------------------------------------------------
     # Step 3: Vegetation change
@@ -521,10 +535,12 @@ def generate_change_summary(
             "percent_improved":  veg["percent_improved"],
         }
         sources.append("gee")
+        section_sources["vegetation"] = "gee"
     else:
         logger.warning("Vegetation section failed, using demo data.")
         summary["vegetation"] = demo.get("vegetation", {})
         sources.append("demo")
+        section_sources["vegetation"] = "demo"
 
     # -------------------------------------------------------------------------
     # Step 4: Water change
@@ -538,14 +554,20 @@ def generate_change_summary(
             "change_ha":       water["change_ha"],
             "change_percent":  water["change_percent"],
             "new_water_bodies": 0,              # Satellite count not impl. yet
+            # NOTE: months_with_water_* are patched from demo JSON (change_data.json)
+            # because multi-month water persistence is not computed from GEE in this
+            # version. When this live implementation is added, remove this patch and
+            # update the _source logic accordingly.
             "months_with_water_before": demo.get("water", {}).get("months_with_water_before", 0),
             "months_with_water_after":  demo.get("water", {}).get("months_with_water_after",  0),
         }
         sources.append("gee")
+        section_sources["water"] = "gee"
     else:
         logger.warning("Water section failed, using demo data.")
         summary["water"] = demo.get("water", {})
         sources.append("demo")
+        section_sources["water"] = "demo"
 
     # -------------------------------------------------------------------------
     # Step 5: Erosion risk
@@ -574,30 +596,41 @@ def generate_change_summary(
                     "classes_after":       ca,
                 }
                 sources.append("gee")
+                section_sources["erosion"] = "gee"
             else:
                 erosion_section = demo.get("erosion", {})
                 sources.append("demo")
+                section_sources["erosion"] = "demo"
 
         except Exception as exc:
             logger.error("Erosion section failed: %s", exc)
             erosion_section = demo.get("erosion", {})
             sources.append("demo")
+            section_sources["erosion"] = "demo"
     else:
         erosion_section = demo.get("erosion", {})
         sources.append("demo")
+        section_sources["erosion"] = "demo"
 
     summary["erosion"] = erosion_section
 
-    # Land-use: always use demo data (K-Means needs many API calls; cache it)
+    # Land-use: always use demo data in this version.
+    # K-Means land-use classification requires many additional GEE API calls
+    # and is not yet implemented in the live pipeline.  This field will be
+    # replaced with a live result in a future phase, at which point the
+    # _source flag will need updating to account for it.
     summary["landuse"] = demo.get("landuse", {})
+    section_sources["landuse"] = "demo"  # intentionally always demo in this version
 
-    # Source tag
+    # Aggregate source tag (for logging/debugging)
     unique_sources = set(sources)
     summary["_source"] = (
         "gee"   if unique_sources == {"gee"}  else
         "demo"  if unique_sources == {"demo"} else
         "mixed"
     )
+    # Per-section source map — used by app.py to validate core sections individually
+    summary["_section_sources"] = section_sources
 
     # -------------------------------------------------------------------------
     # Cache the result for future runs

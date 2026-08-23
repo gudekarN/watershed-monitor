@@ -26,24 +26,29 @@ logger = logging.getLogger(__name__)
 _BASE_LAYOUT = dict(
     template="plotly_dark",
     paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(14,20,36,0.6)",
     font=dict(family="Inter, Arial, sans-serif", size=12, color="#e2e8f0"),
-    margin=dict(l=60, r=30, t=60, b=60),
-    title=dict(font=dict(size=15, color="#e2e8f0"), x=0.02, xanchor="left", pad=dict(b=15)),
+    margin=dict(l=60, r=30, t=70, b=60),
+    title=dict(
+        font=dict(size=15, color="#f1f5f9"),
+        x=0.02, xanchor="left", pad=dict(b=15)
+    ),
     legend=dict(
         orientation="h",
         yanchor="bottom", y=1.02,
         xanchor="right",  x=1,
-        font=dict(size=11),
+        font=dict(size=11, color="#e2e8f0"),
+        bgcolor="rgba(0,0,0,0)",
     ),
-    hoverlabel=dict(bgcolor="rgba(30,30,50,0.9)", font_size=12),
+    hoverlabel=dict(bgcolor="rgba(15,25,45,0.95)", font_size=12, font_color="#f1f5f9"),
 )
 
 _GRID_STYLE = dict(
     showgrid=True,
-    gridcolor="rgba(255,255,255,0.08)",
+    gridcolor="rgba(255,255,255,0.07)",
     zeroline=False,
-    tickfont=dict(size=10),
+    tickfont=dict(size=10, color="#94a3b8"),
+    title_font=dict(color="#e2e8f0"),
 )
 
 
@@ -257,8 +262,9 @@ def health_score_gauge(
     fig.update_layout(
         height=300,
         paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, Arial, sans-serif", color="#e2e8f0"),
-        margin=dict(l=20, r=20, t=60, b=20),
+        margin=dict(l=20, r=20, t=90, b=20),   # tall top margin so title never clips
     )
     return fig
 
