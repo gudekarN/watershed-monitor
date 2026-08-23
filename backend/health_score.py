@@ -174,61 +174,77 @@ def calculate_watershed_health(
             return default
 
     # =========================================================================
+    # CONTINUOUS, TRANSPARENT NORMALIZATION
+    # =========================================================================
+    #
+    # These reference ranges are configurable heuristic ranges for the
+    # hackathon Watershed Health Index. They are NOT a scientifically validated
+    # national scoring standard. Keep them explicit so they can be calibrated
+    # later using field/agency validation data.
+    #
+    # Each component is normalized continuously to [0, 1] and then multiplied
+    # by its allocated weight.
+    # =========================================================================
+
+    def _clamp(value: float, low: float, high: float) -> float:
+        if high <= low:
+            return 0.0
+        return max(0.0, min(1.0, (value - low) / (high - low)))
+
+    # -------------------------------------------------------------------------
     # 1. VEGETATION SCORE (max 35)
-    # =========================================================================
+    # NDVI change reference range:
+    #   -0.05 = no meaningful improvement / deterioration
+    #   +0.25 = strong improvement
+    # -------------------------------------------------------------------------
     ndvi_change = _safe("vegetation", "change")
+    veg_norm = _clamp(ndvi_change, -0.05, 0.25)
+    veg_score = round(35.0 * veg_norm)
 
-    if ndvi_change > 0.20:
-        veg_score = 35
-    elif ndvi_change > 0.15:
-        veg_score = 30
-    elif ndvi_change > 0.10:
-        veg_score = 25
-    elif ndvi_change > 0.05:
-        veg_score = 15
-    elif ndvi_change > 0.00:
-        veg_score = 8
-    else:
-        veg_score = 0
-
-    # =========================================================================
+    # -------------------------------------------------------------------------
     # 2. WATER SCORE (max 35)
-    # =========================================================================
-    water_change_pct = _safe("water", "change_percent")
+    #
+    # Use logarithmic normalization so very large percentage changes do not
+    # immediately saturate the score.
+    #
+    # 0% change   -> 0 points
+    # 300% change -> 35 points
+    #
+    # Negative change receives 0 points.
+    # -------------------------------------------------------------------------
+    import math
 
-    if water_change_pct > 200:
-        water_score = 35
-    elif water_change_pct > 100:
-        water_score = 28
-    elif water_change_pct > 50:
-        water_score = 20
-    elif water_change_pct > 10:
-        water_score = 12
-    elif water_change_pct > 0:
-        water_score = 5
-    else:
-        water_score = 0
+    water_change_pct = _safe("water", "change_percent", 0.0)
+    water_positive = max(0.0, water_change_pct)
+    water_reference_max = 300.0
 
-    # =========================================================================
+    water_norm = (
+        math.log1p(min(water_positive, water_reference_max))
+        / math.log1p(water_reference_max)
+    )
+    water_score = round(35.0 * water_norm)
+
+    # -------------------------------------------------------------------------
     # 3. EROSION SCORE (max 20)
-    # =========================================================================
+    #
+    # 0% reduction  -> 0 points
+    # 50% reduction -> 20 points
+    # -------------------------------------------------------------------------
     erosion_reduction = _safe("erosion", "reduction_percent")
+    erosion_norm = _clamp(erosion_reduction, 0.0, 50.0)
+    erosion_score = round(20.0 * erosion_norm)
 
-    if erosion_reduction > 50:
-        erosion_score = 20
-    elif erosion_reduction > 30:
-        erosion_score = 15
-    elif erosion_reduction > 15:
-        erosion_score = 10
-    elif erosion_reduction > 0:
-        erosion_score = 5
-    else:
-        erosion_score = 0
-
-    # =========================================================================
-    # 4. SUSTAINABILITY SCORE (max 10)
-    # =========================================================================
-    sustainability_score = 5  # neutral default when no timeseries
+    # -------------------------------------------------------------------------
+    # 4. SUSTAINABILITY / TREND SCORE (max 10)
+    #
+    # Based on the proportion of year-to-year NDVI transitions that improved.
+    # This is intentionally continuous rather than bucketed.
+    #
+    # Fewer than 4 valid observations:
+    #   use neutral 5/10 and explicitly record the limitation.
+    # -------------------------------------------------------------------------
+    sustainability_score = 5
+    sustainability_note = "Insufficient annual NDVI observations; neutral trend score applied."
 
     if timeseries_data is not None and len(timeseries_data) >= 4:
         try:
@@ -237,26 +253,30 @@ def calculate_watershed_health(
                 for d in timeseries_data
                 if d.get("ndvi_mean") is not None
             ]
+
             if len(ndvi_values) >= 4:
-                # Count years where NDVI improved over the previous year
                 improving_years = sum(
                     1
                     for i in range(1, len(ndvi_values))
                     if ndvi_values[i] > ndvi_values[i - 1]
                 )
-                consistency = improving_years / (len(ndvi_values) - 1)
 
-                if consistency > 0.8:
-                    sustainability_score = 10
-                elif consistency > 0.6:
-                    sustainability_score = 7
-                elif consistency > 0.4:
-                    sustainability_score = 5
-                else:
-                    sustainability_score = 3
+                transitions = len(ndvi_values) - 1
+                consistency = improving_years / transitions if transitions else 0.5
+
+                sustainability_score = round(
+                    max(0.0, min(10.0, consistency * 10.0))
+                )
+
+                sustainability_note = (
+                    f"{improving_years} of {transitions} annual NDVI transitions "
+                    "showed improvement."
+                )
+
         except Exception as exc:
             logger.warning(
-                "calculate_watershed_health: sustainability calc error: %s", exc
+                "calculate_watershed_health: sustainability calc error: %s",
+                exc,
             )
 
     # =========================================================================
@@ -290,6 +310,22 @@ def calculate_watershed_health(
         "erosion_score":        erosion_score,
         "sustainability_score": sustainability_score,
         "recommendations":      recommendations,
+
+        # Transparent scoring metadata for future UI explanation.
+        "scoring_method": "continuous_normalized_heuristic",
+        "weights": {
+            "vegetation": 35,
+            "water": 35,
+            "erosion": 20,
+            "sustainability": 10,
+        },
+        "score_explanation": {
+            "vegetation_reference": "-0.05 to +0.25 NDVI change",
+            "water_reference": "0% to +300% water-area change (log-normalized)",
+            "erosion_reference": "0% to 50% erosion-risk reduction",
+            "sustainability": sustainability_note,
+            "validation_status": "Heuristic SIH prototype index; requires field validation for production use.",
+        },
     }
 
     logger.info(
