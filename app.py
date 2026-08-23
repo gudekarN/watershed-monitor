@@ -752,6 +752,6 @@ with st.expander("📋 Detailed Analysis", expanded=False):
                     st.plotly_chart(fig_corr, use_container_width=True)
 
 st.caption(
-    "Built for Smart India Hackathon 2024 | Team AquaVeda | "
+    "Built for Smart India Hackathon 2026 | Team AquaVeda | "
     "Powered by GEE + ISRO"
 )
