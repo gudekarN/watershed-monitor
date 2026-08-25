@@ -10,6 +10,9 @@ Modes:
 import os
 import json
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 import streamlit as st
 import folium
@@ -137,22 +140,36 @@ for _key, _val in [
     ('analysis_error',   None),   # set on live GEE failure; cleared on new analysis
     ('selected_watershed_id', None),
     ('previous_watershed', None),
+    ('_trigger_analysis', False),
 ]:
     if _key not in st.session_state:
         st.session_state[_key] = _val
 
 
 # --- 5. MODE BANNER ---
-# A compact per-session mode indicator is shown here; the per-analysis
-# source badge is rendered inline under the dashboard title after analysis runs.
+# Use the same readiness check used by the actual live analysis pipeline.
 if st.session_state.demo_mode:
-    st.info("📁 Running in Demo Mode. Results are pre-computed datasets, not live satellite data.", icon="📁")
+    st.info(
+        "📁 Running in Demo Mode. Results are pre-computed datasets, not live satellite data.",
+        icon="📁",
+    )
 else:
-    # Only claim GEE is ready if the session was actually initialized successfully.
-    if st.session_state.gee_initialized:
-        st.info("🛰️ Google Earth Engine connected. Click **📊 Analyze Watershed** to run live analysis.", icon="🛰️")
+    try:
+        _banner_gee_ready = bool(_ee_ready())
+    except Exception:
+        _banner_gee_ready = False
+
+    if _banner_gee_ready:
+        st.info(
+            "🛰️ Google Earth Engine ready. Click **📊 Analyze Watershed** to run live analysis.",
+            icon="🛰️",
+        )
     else:
-        st.warning("⚠️ Google Earth Engine not connected. Analysis will fail unless you refresh the connection.", icon="⚠️")
+        st.warning(
+            "⚠️ Google Earth Engine is not ready. Live analysis cannot run. "
+            "Switch to Demo Mode or refresh the connection.",
+            icon="⚠️",
+        )
 
 
 # --- 6. LOAD DATA FUNCTIONS ---
@@ -387,13 +404,13 @@ Built for Smart India Hackathon 2026
 
 
 # --- 8. ANALYZE BUTTON HANDLER ---
-if analyze_btn:
+if analyze_btn or st.session_state.pop("_trigger_analysis", False):
     # Always clear previous results before starting a new analysis.
     # This ensures no stale data from a previous watershed or mode is shown.
     st.session_state.analysis_results = None
     st.session_state.analysis_error   = None
 
-    if st.session_state.demo_mode or not _ee_ready():
+    if st.session_state.demo_mode:
         # ── DEMO MODE ──────────────────────────────────────────────────────────
         with st.spinner("Loading demo analysis data..."):
             time.sleep(0.8)
@@ -401,6 +418,13 @@ if analyze_btn:
                 st.session_state.analysis_results = load_from_demo_files(chosen_id)
             except Exception as e:
                 st.session_state.analysis_error = f"Failed to load demo data: {e}"
+    elif not _ee_ready():
+        # ── LIVE GEE MODE (NOT READY) ──────────────────────────────────────────
+        st.session_state.analysis_results = None
+        st.session_state.analysis_error = (
+            "Google Earth Engine is not ready. "
+            "Live analysis was not executed and demo data was not substituted."
+        )
     else:
         # ── LIVE GEE MODE ──────────────────────────────────────────────────────
         with st.spinner("🛰️ Fetching satellite data from GEE..."):
@@ -451,18 +475,42 @@ if analyze_btn:
 
                 status_text.text("Delineating watershed boundary...")
                 progress.progress(40)
+
+                # Watershed boundary is optional visualization data.
+                # Never substitute the 10 km analysis AOI for a real watershed
+                # boundary because that would be geographically misleading.
                 watershed_geom = delineate_watershed(lat, lon)
-                if watershed_geom is None:
-                    watershed_geom = geom  # fallback to image geometry
+
+                watershed_analysis_geom = None
+
+                if isinstance(watershed_geom, dict):
+                    watershed_analysis_geom = watershed_geom.get("geometry")
+                    if watershed_analysis_geom is not None:
+                        logger.info(
+                            "LIVE ANALYSIS: watershed basin_id=%s area=%.2f km²",
+                            watershed_geom.get("basin_id"),
+                            watershed_geom.get("area_sq_km", -1),
+                        )
+
+                if not isinstance(watershed_geom, dict) or not watershed_geom.get("success"):
+                    status_text.text(
+                        "⚠️ Real watershed boundary unavailable; "
+                        "using the 10 km AOI for analysis..."
+                    )
+                    watershed_analysis_geom = geom
 
                 status_text.text("Running change detection analysis...")
                 progress.progress(60)
                 change_result = generate_change_summary(
-                    lat, lon,
+                    lat,
+                    lon,
                     {"start": before_dates[0], "end": before_dates[1]},
-                    {"start": after_dates[0],  "end": after_dates[1]},
+                    {"start": after_dates[0], "end": after_dates[1]},
                     watershed_id=chosen_id,
                     progress_callback=lambda *a: None,
+                    before_image=before_img,
+                    after_image=after_img,
+                    geometry=watershed_analysis_geom,
                 )
 
                 # ── Core-section source validation ─────────────────────────────
@@ -486,8 +534,12 @@ if analyze_btn:
 
                 status_text.text("Calculating timeseries & health score...")
                 progress.progress(80)
-                ndvi_ts  = generate_ndvi_timeseries(lat, lon, start_yr, end_yr)
-                water_ts = generate_water_timeseries(lat, lon, start_yr, end_yr)
+                ndvi_ts  = generate_ndvi_timeseries(
+                    lat, lon, start_yr, end_yr, geometry=watershed_analysis_geom
+                )
+                water_ts = generate_water_timeseries(
+                    lat, lon, start_yr, end_yr, geometry=watershed_analysis_geom
+                )
 
                 # Require at least minimal GEE timeseries results
                 if not ndvi_ts:
@@ -536,8 +588,24 @@ if analyze_btn:
                     "ndvi_ts":        ndvi_ts,
                     "water_ts":       water_ts if water_ts else [],
                     # monthly_ndvi, rainfall, landuse intentionally omitted in live mode
+                    # Real delineated watershed geometry only.
+                    # None means boundary visualization is unavailable.
                     "watershed_geom": watershed_geom,
-                    "drainage_geom":  get_drainage_network(lat, lon),
+
+                    # Drainage is optional and expensive. Only request it
+                    # when the user explicitly enabled the layer and a real
+                    # watershed geometry is available.
+                    "drainage_geom": (
+                        get_drainage_network(
+                            watershed_analysis_geom
+                        )
+                        if (
+                            show_layers.get("Drainage Network", False)
+                            and watershed_analysis_geom is not None
+                        )
+                        else None
+                    ),
+
                     "tile_layers":    tiles,
                     "ws_data":        selected_ws,
                     "watershed_info": selected_ws,
@@ -623,22 +691,11 @@ if not st.session_state.get('analysis_results'):
         type="primary",
         key="main_analyze_btn",
     ):
-        # Delegate to the sidebar button's logic by triggering a rerun;
-        # the sidebar button sets analyze_btn which the handler above picks up.
-        # We replicate the handler inline here for the main-area button.
-        st.session_state.analysis_results = None
-        st.session_state.analysis_error   = None
-
-        if st.session_state.demo_mode or not _ee_ready():
-            with st.spinner("Loading demo analysis data..."):
-                time.sleep(0.8)
-                try:
-                    st.session_state.analysis_results = load_from_demo_files(chosen_id)
-                except Exception as _e:
-                    st.session_state.analysis_error = f"Failed to load demo data: {_e}"
-        else:
-            st.info("Use the **📊 Analyze Watershed** button in the sidebar to start live analysis.", icon="🛰️")
+        # Trigger the same analysis handler used by the sidebar button.
+        # Do not duplicate the analysis pipeline here.
+        st.session_state["_trigger_analysis"] = True
         st.rerun()
+
     st.stop()
 
 # Extract analysis results
@@ -716,8 +773,26 @@ with st.container(border=True):
     try:
         with st.spinner("Loading map..."):
             photos       = load_all_photos(watershed_id=chosen_id)
-            b_geo        = res.get("watershed_geom") or demo_data.get("boundary")
-            d_geo        = res.get("drainage_geom")  or demo_data.get("drainage")
+            b_geo = res.get("watershed_geom")
+
+            # Demo boundary data is currently available only for Hiware Bazar.
+            # Never reuse it for another watershed.
+            if (
+                not b_geo
+                and _is_demo
+                and chosen_id == "hiware_bazar"
+            ):
+                b_geo = demo_data.get("boundary")
+
+            d_geo = res.get("drainage_geom")
+
+            # Demo drainage data is also currently available only for Hiware Bazar.
+            if (
+                not d_geo
+                and _is_demo
+                and chosen_id == "hiware_bazar"
+            ):
+                d_geo = demo_data.get("drainage")
 
             folium_map = build_complete_map(
                 watershed_data    = ws_info,
@@ -940,8 +1015,12 @@ with tab_compare:
                         "Satellite tile URLs are unavailable for this comparison."
                     )
                 else:
+                    import json
                     _lat = ws_info.get("lat", 20.0)
                     _lon = ws_info.get("lon", 76.0)
+
+                    _ws_geom = res.get("watershed_geom")
+                    _ws_geom_json = json.dumps(_ws_geom) if _ws_geom else "null"
 
                     # Load the Leaflet side-by-side plugin only inside the
                     # comparison component. No project dependency is added.
@@ -979,8 +1058,9 @@ html, body {{
     background: rgba(15, 23, 42, 0.85);
     color: white;
     font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
     pointer-events: none;
 }}
 
@@ -998,12 +1078,14 @@ html, body {{
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    padding: 6px 12px;
+    padding: 8px 16px;
     border-radius: 999px;
-    background: rgba(15, 23, 42, 0.88);
+    background: rgba(15, 23, 42, 0.9);
     color: white;
     font-family: Arial, sans-serif;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
     pointer-events: none;
 }}
 </style>
@@ -1022,7 +1104,7 @@ html, body {{
 </div>
 
 <div class="compare-help">
-    ↔ Drag to compare
+    ← 2019 baseline &nbsp;|&nbsp; 2024 post-intervention →
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1085,6 +1167,20 @@ html, body {{
     // BEFORE remains underneath.
     beforeLayer.addTo(map);
 
+    // Overlay the watershed boundary (if available) on top of satellites
+    const wsGeom = {_ws_geom_json};
+    if (wsGeom) {{
+        L.geoJSON(wsGeom, {{
+            style: {{
+                color: "#ffeb3b",
+                weight: 3,
+                fillOpacity: 0,
+                opacity: 1
+            }},
+            interactive: false
+        }}).addTo(map);
+    }}
+
     let split = 50;
     let dragging = false;
 
@@ -1103,12 +1199,14 @@ html, body {{
     divider.style.position = "absolute";
     divider.style.top = "0";
     divider.style.bottom = "0";
-    divider.style.width = "3px";
-    divider.style.background = "white";
-    divider.style.boxShadow = "0 0 8px rgba(0,0,0,0.45)";
+    divider.style.width = "4px";
+    divider.style.background = "#ffffff";
+    divider.style.boxShadow = "0 0 12px rgba(0,0,0,0.8)";
     divider.style.zIndex = "1001";
     divider.style.left = "50%";
     divider.style.cursor = "ew-resize";
+    divider.style.pointerEvents = "auto";
+    divider.style.touchAction = "none";
 
     const handle = document.createElement("div");
     handle.innerHTML = "↔";
@@ -1116,8 +1214,9 @@ html, body {{
     handle.style.left = "50%";
     handle.style.top = "50%";
     handle.style.transform = "translate(-50%, -50%)";
-    handle.style.width = "38px";
-    handle.style.height = "38px";
+    handle.style.width = "42px";
+    handle.style.height = "42px";
+    handle.style.border = "2px solid #ffffff";
     handle.style.borderRadius = "50%";
     handle.style.background = "white";
     handle.style.color = "#0f172a";
@@ -1126,7 +1225,8 @@ html, body {{
     handle.style.justifyContent = "center";
     handle.style.fontSize = "18px";
     handle.style.fontWeight = "700";
-    handle.style.boxShadow = "0 2px 8px rgba(0,0,0,0.35)";
+    handle.style.boxShadow = "0 4px 12px rgba(0,0,0,0.6)";
+    handle.style.pointerEvents = "none";
 
     divider.appendChild(handle);
 
@@ -1145,23 +1245,37 @@ html, body {{
         applySplit();
     }}
 
-    divider.addEventListener("mousedown", function() {{
+    // Prevent Leaflet from interpreting divider interaction as map dragging.
+    function stopLeafletInteraction(event) {{
+        event.preventDefault();
+        event.stopPropagation();
+    }}
+
+    divider.addEventListener("mousedown", function(event) {{
+        stopLeafletInteraction(event);
         dragging = true;
+    }});
+
+    divider.addEventListener("mousemove", function(event) {{
+        if (dragging) {{
+            event.preventDefault();
+            event.stopPropagation();
+            setSplit(event.clientX);
+        }}
     }});
 
     document.addEventListener("mouseup", function() {{
         dragging = false;
     }});
 
-    document.addEventListener("mousemove", function(event) {{
-        if (dragging) {{
-            setSplit(event.clientX);
-        }}
-    }});
-
     divider.addEventListener("touchstart", function(event) {{
-        dragging = true;
         event.preventDefault();
+        event.stopPropagation();
+        dragging = true;
+
+        if (event.touches.length) {{
+            setSplit(event.touches[0].clientX);
+        }}
     }}, {{ passive: false }});
 
     document.addEventListener("touchend", function() {{
@@ -1170,9 +1284,42 @@ html, body {{
 
     document.addEventListener("touchmove", function(event) {{
         if (dragging && event.touches.length) {{
+            event.preventDefault();
+            event.stopPropagation();
             setSplit(event.touches[0].clientX);
         }}
     }}, {{ passive: false }});
+
+    // Also support modern pointer events for reliable mouse/touch dragging.
+    divider.addEventListener("pointerdown", function(event) {{
+        event.preventDefault();
+        event.stopPropagation();
+        dragging = true;
+
+        if (event.clientX !== undefined) {{
+            setSplit(event.clientX);
+        }}
+
+        try {{
+            divider.setPointerCapture(event.pointerId);
+        }} catch (e) {{}}
+    }});
+
+    document.addEventListener("pointermove", function(event) {{
+        if (dragging) {{
+            event.preventDefault();
+            event.stopPropagation();
+            setSplit(event.clientX);
+        }}
+    }}, {{ passive: false }});
+
+    document.addEventListener("pointerup", function() {{
+        dragging = false;
+    }});
+
+    document.addEventListener("pointercancel", function() {{
+        dragging = false;
+    }});
 
     window.addEventListener("resize", applySplit);
 
@@ -1530,6 +1677,47 @@ with tab_photos:
     try:
         all_photos = load_all_photos(chosen_id)
 
+        if _is_demo and all_photos:
+            for p in all_photos:
+                if p.get("verification_status") and p.get("verification_status") != "not_matched":
+                    continue
+                
+                lat = p.get("lat")
+                lon = p.get("lon")
+                ws_id = p.get("watershed_id", chosen_id)
+                struct_type = p.get("type", "")
+                
+                if lat is not None and lon is not None:
+                    try:
+                        lat_f = float(lat)
+                        lon_f = float(lon)
+                        match_result = find_nearest_reference_observation(
+                            lat_f, lon_f, ws_id, max_distance_m=500.0
+                        )
+                        ref = match_result.get("reference") or {}
+                        
+                        type_matches = (
+                            bool(ref)
+                            and str(ref.get("type", "")).strip().lower()
+                            == str(struct_type).strip().lower()
+                        )
+                        
+                        if match_result.get("matched") and type_matches:
+                            p["verification_status"] = "reference_match"
+                        elif match_result.get("matched") and not type_matches:
+                            p["verification_status"] = "reference_type_mismatch"
+                        else:
+                            p["verification_status"] = "no_reference_match"
+                            
+                        p["reference_observation_id"] = ref.get("id")
+                        p["reference_distance_m"] = match_result.get("distance_m")
+                        p["reference_match_type"] = "sample_field_observation" if ref else None
+
+                    except (ValueError, TypeError):
+                        p["verification_status"] = "gps_unavailable"
+                else:
+                    p["verification_status"] = "gps_unavailable"
+
         st.markdown("### 📋 Field Evidence Status")
         st.caption(
             "GPS reference matching compares the uploaded photo location with sample "
@@ -1583,50 +1771,69 @@ with tab_photos:
                     ref_id = photo.get("reference_observation_id")
                     
                     ref_html = ""
+
                     if ref_dist is not None:
                         try:
-                            ref_html += f"<br>📏 Reference distance: {float(ref_dist):.1f} m"
+                            ref_html += (
+                                f"<div style='margin-top:4px;'>"
+                                f"📏 Reference distance: {float(ref_dist):.1f} m"
+                                f"</div>"
+                            )
                         except (TypeError, ValueError):
                             pass
+
                     if ref_id is not None:
-                        ref_html += f"<br>🔎 Reference observation: #{ref_id}"
+                        ref_html += (
+                            f"<div style='margin-top:4px;'>"
+                            f"🔎 Reference observation: #{ref_id}"
+                            f"</div>"
+                        )
 
                     verified_html = ""
                     if photo.get("verified"):
-                        verified_html = "<div style='margin-top:6px; font-size:11px; color:#888;'>✓ Manually Verified</div>"
+                        verified_html = (
+                            "<div style='margin-top:6px; font-size:11px; "
+                            "color:#166534; font-weight:600;'>"
+                            "✓ Manually Verified"
+                            "</div>"
+                        )
 
-                    st.markdown(f"""
-                    <div style="border:1px solid #334155; border-radius:10px; padding:12px;
-                                margin:6px 0; border-left:4px solid {status_color};
-                                background:rgba(30,41,59,0.6);">
-                        <strong style="color:#f8fafc">{photo.get('type', 'Photo')}</strong>
-                        <br><span style="color:#94a3b8; font-size:12px;">
-                        📍 {photo.get('lat', 0):.4f}, {photo.get('lon', 0):.4f}</span>
-                        <br><span style="color:#94a3b8; font-size:12px;">📅 {photo.get('date', '')}</span>
-                        <br><span style="background:{status_color}; color:white;
-                                  padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600;">
-                        {photo.get('status', '')}</span>
+                    verification_html = (
+                        f"<div style='margin-top:8px; padding:8px; "
+                        f"border-radius:7px; background:{v_bg}; "
+                        f"color:{v_color}; font-size:11px; font-weight:600;'>"
+                        f"{v_label}"
+                        f"{ref_html}"
+                        f"</div>"
+                    )
 
-                        <br><span style="font-size:11px; color:#94a3b8;">
-                        Verification:
-                        {photo.get('verification_status', 'not_matched').replace('_', ' ').title()}
-                        </span>
-
-                        {
-                            (
-                                f"<br><span style='font-size:11px; color:#94a3b8;'>"
-                                f"📍 Reference distance: {float(photo.get('reference_distance_m')):.1f} m"
-                                f"</span>"
-                            )
-                            if photo.get("reference_distance_m") is not None
-                            else ""
-                        }
-
-                        <br><span style="font-size:12px; color:#cbd5e1">
-                        {photo.get('description', '')[:60]}
-                        </span>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    card_html = f"""
+<div style="border:1px solid #334155; border-radius:10px; padding:12px; margin:6px 0; border-left:4px solid {status_color}; background:rgba(30,41,59,0.6);">
+    <strong style="color:#f8fafc;">
+        {photo.get('type', 'Photo')}
+    </strong>
+    <br>
+    <span style="color:#94a3b8; font-size:12px;">
+        📍 {photo.get('lat', 0):.4f},
+        {photo.get('lon', 0):.4f}
+    </span>
+    <br>
+    <span style="color:#94a3b8; font-size:12px;">
+        📅 {photo.get('date', '')}
+    </span>
+    <br>
+    <span style="background:{status_color}; color:white; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600;">
+        {photo.get('status', '')}
+    </span>
+    {verification_html}
+    {verified_html}
+    <br>
+    <span style="display:block; margin-top:6px; font-size:12px; color:#cbd5e1;">
+        {photo.get('description', '')[:60]}
+    </span>
+</div>
+"""
+                    st.markdown(card_html, unsafe_allow_html=True)
         else:
             st.info("No field photos recorded for this watershed yet.")
     except Exception as e:

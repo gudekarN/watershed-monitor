@@ -366,90 +366,76 @@ def add_structure_markers(
     watershed_data: Dict[str, Any],
 ) -> "folium.Map":
     """
-    Add infrastructure markers for each watershed structure listed in the
-    watershed data dict.
+    Add infrastructure markers only when real structure coordinates exist.
 
-    The ``structures`` key is expected to be a dict of
-    ``{structure_type: count}``, e.g.::
+    IMPORTANT:
+    Structure counts in sample_watersheds.json do not contain individual
+    GPS coordinates. Therefore this function MUST NOT invent or scatter
+    representative points.
 
-        {"Check Dams": 52, "Farm Ponds": 38, "Contour Trenches": "1,850 m"}
-
-    Markers are placed pseudo-randomly around the watershed centre so they
-    appear on the map even without individual GPS coordinates. When real
-    coordinates are present (``structure_locations`` key) those are used.
-
-    Args:
-        m              : folium.Map.
-        watershed_data : Dict from ``sample_watersheds.json``.
-
-    Returns:
-        The same map.
+    When ``structure_locations`` contains real coordinates, those points
+    are rendered. Otherwise the function does nothing and logs that
+    structure locations are unavailable.
     """
     if not _FOLIUM_OK or m is None or not watershed_data:
         return m
 
-    import math, random
-    random.seed(42)  # deterministic jitter so markers don't move on rerun
-
-    center_lat = watershed_data.get("lat", 20.0)
-    center_lon = watershed_data.get("lon", 76.0)
-    structures  = watershed_data.get("structures", {})
-
-    # If explicit point locations are available, use them
     locations = watershed_data.get("structure_locations", [])
-    if locations:
-        for loc in locations:
-            s_type = loc.get("type", "default")
-            cfg = _STRUCTURE_ICONS.get(s_type, _STRUCTURE_ICONS["default"])
-            try:
-                folium.Marker(
-                    location=[loc["lat"], loc["lon"]],
-                    tooltip=f"{s_type} — {loc.get('name','')}",
-                    icon=folium.Icon(
-                        icon=cfg["icon"], prefix="fa", color=cfg["color"]
-                    ),
-                ).add_to(m)
-            except Exception as exc:
-                logger.warning("add_structure_markers: %s", exc)
+
+    if not locations:
+        logger.info(
+            "add_structure_markers: no real structure coordinates available; "
+            "skipping infrastructure markers."
+        )
         return m
 
-    # Fallback: scatter one representative marker per structure type
-    radius_deg = 0.03  # ~3.3 km scatter radius
-    for s_type, count in structures.items():
-        # Normalise key to match icon dict (strip plurals, extra spaces)
-        normalised = s_type.rstrip("s").strip()
+    added = 0
+
+    for loc in locations:
+        lat = loc.get("lat")
+        lon = loc.get("lon")
+
+        if lat is None or lon is None:
+            continue
+
+        s_type = loc.get("type", "Structure")
         cfg = _STRUCTURE_ICONS.get(
             s_type,
-            _STRUCTURE_ICONS.get(normalised, _STRUCTURE_ICONS["default"]),
+            _STRUCTURE_ICONS["default"],
         )
-        angle = random.uniform(0, 2 * math.pi)
-        dist  = random.uniform(0.4, 1.0) * radius_deg
-        jlat  = center_lat + dist * math.sin(angle)
-        jlon  = center_lon + dist * math.cos(angle)
 
         try:
             folium.Marker(
-                location=[jlat, jlon],
-                tooltip=f"{s_type}: {count}",
+                location=[lat, lon],
+                tooltip=f"{s_type} — {loc.get('name', '')}",
                 popup=folium.Popup(
-                    f"<b>{s_type}</b><br>Count: {count}", max_width=180
+                    (
+                        f"<b>{s_type}</b><br>"
+                        f"{loc.get('name', 'Structure')}<br>"
+                        f"📍 {float(lat):.6f}, {float(lon):.6f}"
+                    ),
+                    max_width=220,
                 ),
                 icon=folium.Icon(
-                    icon=cfg["icon"], prefix="fa", color=cfg["color"]
+                    icon=cfg["icon"],
+                    prefix="fa",
+                    color=cfg["color"],
                 ),
             ).add_to(m)
-        except Exception as exc:
-            logger.warning("add_structure_markers: icon '%s' failed (%s), using default.", cfg["icon"], exc)
-            try:
-                folium.Marker(
-                    location=[jlat, jlon],
-                    tooltip=f"{s_type}: {count}",
-                    popup=folium.Popup(f"<b>{s_type}</b><br>Count: {count}", max_width=180),
-                ).add_to(m)
-            except Exception:
-                pass
 
-    logger.info("add_structure_markers: placed markers for %d structure types.", len(structures))
+            added += 1
+
+        except Exception as exc:
+            logger.warning(
+                "add_structure_markers: skipped location: %s",
+                exc,
+            )
+
+    logger.info(
+        "add_structure_markers: added %d real structure markers.",
+        added,
+    )
+
     return m
 
 
@@ -597,6 +583,8 @@ def build_complete_map(
         add_photo_markers(m, photos)
 
     # -- 6. Structure markers -------------------------------------------------
+    # Only real structure coordinates are rendered.
+    # Count-only watershed data produces no invented map points.
     if show_layers.get("Structures", True):
         add_structure_markers(m, watershed_data)
 

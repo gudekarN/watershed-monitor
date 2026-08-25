@@ -24,8 +24,7 @@ def _ee_ready() -> bool:
     if not _EE_OK or ee is None:
         return False
     try:
-        ee.Number(1).getInfo()
-        return True
+        return bool(ee.data.is_initialized())
     except Exception:
         return False
 
@@ -221,18 +220,58 @@ def calculate_erosion_risk(geometry: "ee.Geometry", ndvi_image: "ee.Image" = Non
         # 0-0.2: Very Low, 0.2-0.4: Low, 0.4-0.6: Medium, 0.6-0.8: High, 0.8-1.0: Very High
         classified = (risk.multiply(5).floor().min(4)).rename('erosion_class')
         
-        # Get area in each class
-        class_areas = {}
-        class_names = ['Very Low', 'Low', 'Medium', 'High', 'Very High']
-        for i, name in enumerate(class_names):
-            mask = classified.eq(i)
-            area = mask.multiply(ee.Image.pixelArea()).reduceRegion(
-                reducer=ee.Reducer.sum(),
-                geometry=geometry,
-                scale=30,
-                maxPixels=1e9
-            ).getInfo()
-            class_areas[name] = round(area.get('erosion_class', 0) / 10000, 1)  # hectares
+        # Get all erosion-class areas in ONE GEE reduction.
+        #
+        # Each class is represented as a separate band containing pixel area
+        # only where that class is present. This avoids five independent
+        # reduceRegion().getInfo() calls.
+
+        class_names = [
+            'Very Low',
+            'Low',
+            'Medium',
+            'High',
+            'Very High',
+        ]
+
+        area_bands = [
+            classified.eq(0)
+                .multiply(ee.Image.pixelArea())
+                .rename('very_low_m2'),
+
+            classified.eq(1)
+                .multiply(ee.Image.pixelArea())
+                .rename('low_m2'),
+
+            classified.eq(2)
+                .multiply(ee.Image.pixelArea())
+                .rename('medium_m2'),
+
+            classified.eq(3)
+                .multiply(ee.Image.pixelArea())
+                .rename('high_m2'),
+
+            classified.eq(4)
+                .multiply(ee.Image.pixelArea())
+                .rename('very_high_m2'),
+        ]
+
+        class_area_image = ee.Image.cat(area_bands)
+
+        area_result = class_area_image.reduceRegion(
+            reducer=ee.Reducer.sum(),
+            geometry=geometry,
+            scale=30,
+            maxPixels=1e9,
+        ).getInfo()
+
+        class_areas = {
+            'Very Low': round(float(area_result.get('very_low_m2', 0) or 0) / 10000, 1),
+            'Low':      round(float(area_result.get('low_m2', 0) or 0) / 10000, 1),
+            'Medium':   round(float(area_result.get('medium_m2', 0) or 0) / 10000, 1),
+            'High':     round(float(area_result.get('high_m2', 0) or 0) / 10000, 1),
+            'Very High':round(float(area_result.get('very_high_m2', 0) or 0) / 10000, 1),
+        }
         
         return {
             'risk_image': risk,

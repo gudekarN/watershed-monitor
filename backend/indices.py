@@ -49,10 +49,8 @@ def _ee_ready() -> bool:
         logger.warning("indices: earthengine-api not installed.")
         return False
     try:
-        ee.Number(1).getInfo()
-        return True
-    except Exception as exc:
-        logger.warning("indices: GEE not initialised -- %s", exc)
+        return bool(ee.data.is_initialized())
+    except Exception:
         return False
 
 
@@ -445,6 +443,7 @@ def generate_ndvi_timeseries(
     start_year: int,
     end_year: int,
     buffer_km: float = 5,
+    geometry=None,
 ) -> Optional[List[Dict]]:
     """
     Build a year-by-year NDVI timeseries using monsoon-season composites.
@@ -475,8 +474,9 @@ def generate_ndvi_timeseries(
         return None
 
     try:
-        from backend.gee_engine import _make_geometry
-        geometry = _make_geometry(lat, lon, buffer_km * 1000)
+        if geometry is None:
+            from backend.gee_engine import _make_geometry
+            geometry = _make_geometry(lat, lon, buffer_km * 1000)
     except Exception as exc:
         logger.error("generate_ndvi_timeseries: geometry creation failed: %s", exc)
         return None
@@ -494,13 +494,6 @@ def generate_ndvi_timeseries(
                 .filterDate(start_date, end_date)
                 .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
             )
-
-            count = collection.size().getInfo()
-            if count == 0:
-                logger.info(
-                    "generate_ndvi_timeseries: no images for %d, skipping.", year
-                )
-                continue
 
             composite = collection.median().clip(geometry)
             ndvi_img   = calculate_ndvi(composite)
@@ -553,6 +546,7 @@ def generate_water_timeseries(
     start_year: int,
     end_year: int,
     buffer_km: float = 5,
+    geometry=None,
 ) -> Optional[List[Dict]]:
     """
     Build a year-by-year water-body area timeseries using post-monsoon composites.
@@ -582,8 +576,9 @@ def generate_water_timeseries(
         return None
 
     try:
-        from backend.gee_engine import _make_geometry
-        geometry = _make_geometry(lat, lon, buffer_km * 1000)
+        if geometry is None:
+            from backend.gee_engine import _make_geometry
+            geometry = _make_geometry(lat, lon, buffer_km * 1000)
     except Exception as exc:
         logger.error("generate_water_timeseries: geometry creation failed: %s", exc)
         return None
@@ -603,43 +598,40 @@ def generate_water_timeseries(
                 .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
             )
 
-            count = collection.size().getInfo()
-            if count == 0:
-                logger.info(
-                    "generate_water_timeseries: no images for %d, skipping.", year
-                )
-                continue
-
             composite = collection.median().clip(geometry)
 
-            # -- NDWI mean ---------------------------------------------------
+            # -- NDWI mean and Water Area ------------------------------------
             ndwi_img = calculate_ndwi(composite)
             if ndwi_img is None:
                 continue
 
-            ndwi_stats = ndwi_img.reduceRegion(
-                reducer=ee.Reducer.mean(),
-                geometry=geometry,
-                scale=10,
-                maxPixels=1e9,
-            ).getInfo()
-            ndwi_mean = ndwi_stats.get("NDWI") or ndwi_stats.get("nd")
-
-            # -- Water area (NDWI > 0) ---------------------------------------
-            water_mask   = ndwi_img.gt(0.0)
-            pixel_area   = ee.Image.pixelArea()
-            water_pixels = water_mask.multiply(pixel_area)
-
-            area_result = water_pixels.reduceRegion(
-                reducer=ee.Reducer.sum(),
-                geometry=geometry,
-                scale=10,
-                maxPixels=1e9,
-            ).getInfo()
-
-            area_m2 = float(
-                area_result.get("NDWI") or area_result.get("nd") or 0
+            water_area = (
+                ndwi_img.gt(0.0)
+                .multiply(ee.Image.pixelArea())
+                .rename("water_area_m2")
             )
+
+            stats_image = ee.Image.cat([
+                ndwi_img.rename("NDWI"),
+                water_area,
+            ])
+
+            stats = stats_image.reduceRegion(
+                reducer=ee.Reducer.mean().combine(
+                    ee.Reducer.sum(),
+                    sharedInputs=False,
+                ),
+                geometry=geometry,
+                scale=10,
+                maxPixels=1e9,
+            ).getInfo()
+
+            ndwi_mean = stats.get("NDWI_mean") or stats.get("nd_mean")
+            if ndwi_mean is None:
+                logger.info("generate_water_timeseries: no data for %d, skipping.", year)
+                continue
+
+            area_m2 = float(stats.get("water_area_m2_sum") or 0)
             area_ha = round(area_m2 / 10_000, 4)
 
             results.append({

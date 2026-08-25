@@ -52,18 +52,16 @@ logger = logging.getLogger(__name__)
 
 
 def _ee_ready() -> bool:
-    """Check if Google Earth Engine is initialized and ready to execute queries.
-
-    Returns True only when the ``ee`` package is importable **and** a credential
-    object has been attached (i.e. ``ee.Initialize()`` has been called
-    successfully in this process).  Safe to call at any time — never raises.
-    """
+    """Return True when the Earth Engine client has been initialized."""
     if not _GEE_IMPORT_OK or ee is None:
         return False
+
     try:
-        # ee.data._credentials is set by Initialize(); None/missing means not ready
-        return ee.data._credentials is not None
-    except Exception:
+        # Use the public Earth Engine initialization state instead of
+        # inspecting private/internal credential attributes.
+        return bool(ee.data.is_initialized())
+    except Exception as exc:
+        logger.warning("Unable to determine GEE initialization state: %s", exc)
         return False
 
 
@@ -89,16 +87,12 @@ _SAMPLE_MONTHLY_RAIN = [
 # =============================================================================
 
 def _is_gee_ready() -> bool:
-    """Return True only when the GEE API is imported and initialised."""
+    """Return True when the Earth Engine client is initialized."""
     if not _GEE_IMPORT_OK or ee is None:
-        logger.warning("earthengine-api not installed — skipping GEE call.")
         return False
     try:
-        # Lightweight call to verify the session is authenticated.
-        ee.Number(1).getInfo()
-        return True
-    except Exception as exc:
-        logger.warning("GEE not initialised: %s", exc)
+        return bool(ee.data.is_initialized())
+    except Exception:
         return False
 
 
@@ -345,32 +339,9 @@ def create_s2_composite(
 
     # Step A
     s2_col   = get_s2_collection(aoi, start_date, end_date, cloud_filter)
-    n_before = s2_col.size().getInfo()
-    meta["images_before_filter"] = n_before
-    logger.info(
-        "create_s2_composite [%s]: %d scenes in AOI+date range (%s to %s)",
-        label or "unlabelled", n_before, start_date, end_date,
-    )
-
-    if n_before == 0:
-        raise InsufficientImageryError(
-            f"No Sentinel-2 observations found for period ({start_date} to {end_date}). "
-            "Check the watershed coordinates and date range."
-        )
 
     # Step B
     s2_with_prob = join_cloud_probability(s2_col, aoi, start_date, end_date)
-    n_joined = s2_with_prob.size().getInfo()
-    logger.info(
-        "create_s2_composite [%s]: %d scenes matched with cloud-probability.",
-        label or "unlabelled", n_joined,
-    )
-
-    if n_joined == 0:
-        raise InsufficientImageryError(
-            f"Cloud-probability data could not be joined for period ({start_date} to {end_date}). "
-            "COPERNICUS/S2_CLOUD_PROBABILITY may not cover this date range."
-        )
 
     # Step C
     s2_masked = s2_with_prob.map(
@@ -382,8 +353,42 @@ def create_s2_composite(
             buffer_m=buffer_m,
         )
     )
-    n_after = s2_masked.size().getInfo()
+
+    counts = ee.Dictionary({
+        "before": s2_col.size(),
+        "joined": s2_with_prob.size(),
+        "after": s2_masked.size(),
+    }).getInfo()
+
+    n_before = int(counts.get("before", 0) or 0)
+    n_joined = int(counts.get("joined", 0) or 0)
+    n_after  = int(counts.get("after", 0) or 0)
+
+    meta["images_before_filter"] = n_before
     meta["images_after_filter"] = n_after
+
+    logger.info(
+        "create_s2_composite [%s]: %d scenes in AOI+date range (%s to %s)",
+        label or "unlabelled", n_before, start_date, end_date,
+    )
+
+    if n_before == 0:
+        raise InsufficientImageryError(
+            f"No Sentinel-2 observations found for period ({start_date} to {end_date}). "
+            "Check the watershed coordinates and date range."
+        )
+
+    logger.info(
+        "create_s2_composite [%s]: %d scenes matched with cloud-probability.",
+        label or "unlabelled", n_joined,
+    )
+
+    if n_joined == 0:
+        raise InsufficientImageryError(
+            f"Cloud-probability data could not be joined for period ({start_date} to {end_date}). "
+            "COPERNICUS/S2_CLOUD_PROBABILITY may not cover this date range."
+        )
+
     logger.info(
         "create_s2_composite [%s]: %d scenes remain after cloud+shadow masking.",
         label or "unlabelled", n_after,
@@ -1111,22 +1116,12 @@ def get_all_tile_layers(
         except Exception as exc:
             logger.error("get_all_tile_layers: AFTER composite error: %s", exc)
 
-    logger.info("get_all_tile_layers: fetching SRTM DEM.")
-    dem, geom_dem = get_elevation(lat, lon, buffer_km)
+    # ── SRTM DEM fetching removed to save GEE compute quota ─────────────
 
 
     # ── Layer 1: NDVI (Before) ────────────────────────────────────────────────
-    try:
-        if img_before is not None:
-            ndvi_before = img_before.normalizedDifference(["B8", "B4"]).rename("NDVI")
-            result["NDVI (Before)"] = ee_image_to_folium_tile(
-                ndvi_before, _TILE_NDVI_VIS, "NDVI (Before)"
-            )
-        else:
-            result["NDVI (Before)"] = None
-    except Exception as exc:
-        logger.error("Layer 'NDVI (Before)' failed: %s", exc)
-        result["NDVI (Before)"] = None
+    # Explicitly disabled to save GEE quota.
+    result["NDVI (Before)"] = None
 
     # ── Layer 2: NDVI (After) ─────────────────────────────────────────────────
     try:
@@ -1157,17 +1152,8 @@ def get_all_tile_layers(
 
 
     # ── Layer 6: Slope (from DEM) ─────────────────────────────────────────────
-    try:
-        if dem is not None and geom_dem is not None:
-            slope = ee.Terrain.slope(dem)
-            result["Slope"] = ee_image_to_folium_tile(
-                slope, _TILE_SLOPE_VIS, "Slope"
-            )
-        else:
-            result["Slope"] = None
-    except Exception as exc:
-        logger.error("Layer 'Slope' failed: %s", exc)
-        result["Slope"] = None
+    # Explicitly disabled to save GEE quota.
+    result["Slope"] = None
 
     # ── Comparison Layer: Before Satellite ────────────────────────────────────
     # Alias of True Color (Before) under a stable key consumed by the

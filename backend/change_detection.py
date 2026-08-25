@@ -70,10 +70,8 @@ def _ee_ready() -> bool:
     if not _EE_OK or ee is None:
         return False
     try:
-        ee.Number(1).getInfo()
-        return True
-    except Exception as exc:
-        logger.warning("change_detection: GEE not initialised -- %s", exc)
+        return bool(ee.data.is_initialized())
+    except Exception:
         return False
 
 
@@ -192,9 +190,27 @@ def detect_vegetation_change(
         mod_decline   = change.lt(-0.05).And(change.gte(-0.15))
         sig_decline   = change.lt(-0.15)
 
-        improved_ha   = _area_ha(sig_improve.Or(mod_improve), geometry)
-        declined_ha   = _area_ha(mod_decline.Or(sig_decline), geometry)
-        unchanged_ha  = _area_ha(no_change, geometry)
+        improved = sig_improve.Or(mod_improve)
+        declined = mod_decline.Or(sig_decline)
+        unchanged = no_change
+
+        area_img = ee.Image.cat([
+            improved.multiply(_pixel_area_image()).rename("improved_area_m2"),
+            declined.multiply(_pixel_area_image()).rename("declined_area_m2"),
+            unchanged.multiply(_pixel_area_image()).rename("unchanged_area_m2")
+        ])
+
+        area_stats = area_img.reduceRegion(
+            reducer=ee.Reducer.sum(),
+            geometry=geometry,
+            scale=10,
+            maxPixels=1e9,
+            bestEffort=True
+        ).getInfo()
+
+        improved_ha   = round(area_stats.get("improved_area_m2", 0) / 10000, 2)
+        declined_ha   = round(area_stats.get("declined_area_m2", 0) / 10000, 2)
+        unchanged_ha  = round(area_stats.get("unchanged_area_m2", 0) / 10000, 2)
         total_ha      = improved_ha + declined_ha + unchanged_ha
 
         percent_improved = (
@@ -202,8 +218,21 @@ def detect_vegetation_change(
         )
 
         # -- Scalar means -----------------------------------------------------
-        ndvi_before_mean = _mean_value(ndvi_before, geometry) or 0.0
-        ndvi_after_mean  = _mean_value(ndvi_after,  geometry) or 0.0
+        ndvi_img = ee.Image.cat([
+            ndvi_before.rename("ndvi_before"),
+            ndvi_after.rename("ndvi_after")
+        ])
+
+        ndvi_stats = ndvi_img.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=geometry,
+            scale=10,
+            maxPixels=1e9,
+            bestEffort=True
+        ).getInfo()
+
+        ndvi_before_mean = round(ndvi_stats.get("ndvi_before", 0.0), 3)
+        ndvi_after_mean  = round(ndvi_stats.get("ndvi_after", 0.0), 3)
         change_mean      = round(ndvi_after_mean - ndvi_before_mean, 4)
 
         logger.info(
@@ -273,14 +302,28 @@ def detect_water_change(
         # Binary water masks
         water_before = ndwi_before.gt(ndwi_threshold)
         water_after  = ndwi_after.gt(ndwi_threshold)
+        new_water    = water_before.Not().And(water_after)
+        lost_water   = water_before.And(water_after.Not())
 
-        area_before_ha = _area_ha(water_before, geometry)
-        area_after_ha  = _area_ha(water_after,  geometry)
+        water_area_img = ee.Image.cat([
+            water_before.multiply(_pixel_area_image()).rename("water_before_area_m2"),
+            water_after.multiply(_pixel_area_image()).rename("water_after_area_m2"),
+            new_water.multiply(_pixel_area_image()).rename("new_water_area_m2"),
+            lost_water.multiply(_pixel_area_image()).rename("lost_water_area_m2")
+        ])
 
-        # New water: dry before, wet after
-        new_water_ha  = _area_ha(water_before.Not().And(water_after),  geometry)
-        # Lost water: wet before, dry after
-        lost_water_ha = _area_ha(water_before.And(water_after.Not()), geometry)
+        water_stats = water_area_img.reduceRegion(
+            reducer=ee.Reducer.sum(),
+            geometry=geometry,
+            scale=10,
+            maxPixels=1e9,
+            bestEffort=True
+        ).getInfo()
+
+        area_before_ha = round(water_stats.get("water_before_area_m2", 0) / 10000, 2)
+        area_after_ha  = round(water_stats.get("water_after_area_m2", 0) / 10000, 2)
+        new_water_ha   = round(water_stats.get("new_water_area_m2", 0) / 10000, 2)
+        lost_water_ha  = round(water_stats.get("lost_water_area_m2", 0) / 10000, 2)
 
         change_ha = round(area_after_ha - area_before_ha, 2)
         change_percent = (
@@ -419,7 +462,12 @@ def generate_change_summary(
     buffer_km: float = 10,
     watershed_id: Optional[str] = None,
     progress_callback=None,
+    before_image: Optional["ee.Image"] = None,
+    after_image: Optional["ee.Image"] = None,
+    geometry: Optional["ee.Geometry"] = None,
 ) -> Dict[str, Any]:
+    import time
+    _t_total = time.perf_counter()
     """
     Run the full change-detection pipeline and return a summary dict that
     matches the schema of ``data/change_data.json``.
@@ -427,6 +475,9 @@ def generate_change_summary(
     Any section that fails (vegetation, water, erosion, landuse) is replaced
     with the corresponding demo data so the dashboard always has something
     to display.
+
+    When all three optional image parameters are supplied, no additional Sentinel-2
+    composite fetches are performed.
 
     Args:
         lat, lon         : Watershed centre (decimal degrees).
@@ -436,6 +487,9 @@ def generate_change_summary(
         watershed_id     : Key into change_data.json used for demo fallback.
         progress_callback: Optional callable(step: int, total: int, msg: str)
                            so callers can drive an st.progress() bar.
+        before_image     : Optional pre-built BEFORE Sentinel-2 composite.
+        after_image      : Optional pre-built AFTER Sentinel-2 composite.
+        geometry         : Optional shared AOI geometry for the supplied composites.
 
     Returns:
         dict matching change_data.json schema:
@@ -476,31 +530,51 @@ def generate_change_summary(
         return demo
 
     # -------------------------------------------------------------------------
-    # Step 1: Fetch Sentinel-2 images
+    # Step 1: Obtain Sentinel-2 images
     # -------------------------------------------------------------------------
-    _progress(1, "Fetching baseline Sentinel-2 image...")
-    try:
-        img_before, geom = get_sentinel2_image(
-            lat, lon,
-            before_dates.get("start", "2019-01-01"),
-            before_dates.get("end",   "2019-12-31"),
-            buffer_km,
-        )
-    except Exception as exc:
-        logger.error("generate_change_summary: before image fetch failed: %s", exc)
-        img_before, geom = None, None
+    # Prefer pre-built composites supplied by app.py. This prevents the
+    # expensive s2cloudless pipeline from running a second time.
+    if before_image is not None and after_image is not None and geometry is not None:
+        _progress(1, "Reusing pre-built BEFORE Sentinel-2 composite...")
+        img_before = before_image
+        img_after = after_image
+        geom = geometry
 
-    _progress(2, "Fetching current Sentinel-2 image...")
-    try:
-        img_after, _ = get_sentinel2_image(
-            lat, lon,
-            after_dates.get("start", "2024-01-01"),
-            after_dates.get("end",   "2024-12-31"),
-            buffer_km,
+        logger.info(
+            "generate_change_summary: reusing pre-built Sentinel-2 composites "
+            "and shared geometry."
         )
-    except Exception as exc:
-        logger.error("generate_change_summary: after image fetch failed: %s", exc)
-        img_after = None
+    else:
+        _progress(1, "Fetching baseline Sentinel-2 image...")
+        try:
+            img_before, _fetched_geom = get_sentinel2_image(
+                lat, lon,
+                before_dates.get("start", "2019-01-01"),
+                before_dates.get("end",   "2019-12-31"),
+                buffer_km,
+            )
+            geom = geometry if geometry is not None else _fetched_geom
+        except Exception as exc:
+            logger.error(
+                "generate_change_summary: before image fetch failed: %s",
+                exc,
+            )
+            img_before, geom = None, None
+
+        _progress(2, "Fetching current Sentinel-2 image...")
+        try:
+            img_after, _ = get_sentinel2_image(
+                lat, lon,
+                after_dates.get("start", "2024-01-01"),
+                after_dates.get("end",   "2024-12-31"),
+                buffer_km,
+            )
+        except Exception as exc:
+            logger.error(
+                "generate_change_summary: after image fetch failed: %s",
+                exc,
+            )
+            img_after = None
 
     if img_before is None or img_after is None or geom is None:
         logger.warning(
@@ -523,7 +597,9 @@ def generate_change_summary(
     # Step 3: Vegetation change
     # -------------------------------------------------------------------------
     _progress(3, "Detecting vegetation change (NDVI)...")
+    _t0 = time.perf_counter()
     veg = detect_vegetation_change(img_before, img_after, geom)
+    logger.info("CHANGE DETECTION TIMING: vegetation %.2f seconds", time.perf_counter() - _t0)
     if veg.get("success"):
         summary["vegetation"] = {
             "ndvi_before":       veg["ndvi_before"],
@@ -546,7 +622,9 @@ def generate_change_summary(
     # Step 4: Water change
     # -------------------------------------------------------------------------
     _progress(4, "Detecting water body change (NDWI)...")
+    _t0 = time.perf_counter()
     water = detect_water_change(img_before, img_after, geom)
+    logger.info("CHANGE DETECTION TIMING: water %.2f seconds", time.perf_counter() - _t0)
     if water.get("success"):
         summary["water"] = {
             "area_before_ha":  water["area_before_ha"],
@@ -576,8 +654,13 @@ def generate_change_summary(
     erosion_section: Dict[str, Any] = {}
     if _WATERSHED_OK:
         try:
+            _t0 = time.perf_counter()
             er_before = calculate_erosion_risk(geom, calculate_ndvi(img_before))
+            logger.info("CHANGE DETECTION TIMING: erosion_before %.2f seconds", time.perf_counter() - _t0)
+            
+            _t0 = time.perf_counter()
             er_after  = calculate_erosion_risk(geom, calculate_ndvi(img_after))
+            logger.info("CHANGE DETECTION TIMING: erosion_after %.2f seconds", time.perf_counter() - _t0)
 
             if er_before.get("success") and er_after.get("success"):
                 cb = er_before["class_areas"]
@@ -651,6 +734,7 @@ def generate_change_summary(
         except Exception as exc:
             logger.warning("generate_change_summary: caching failed: %s", exc)
 
+    logger.info("CHANGE DETECTION TIMING: total %.2f seconds", time.perf_counter() - _t_total)
     logger.info(
         "generate_change_summary: done (source=%s).", summary["_source"]
     )
