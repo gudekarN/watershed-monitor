@@ -481,23 +481,31 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
                 # boundary because that would be geographically misleading.
                 watershed_geom = delineate_watershed(lat, lon)
 
+                # 1. Authoritative analysis geometry starts as None
                 watershed_analysis_geom = None
 
-                if isinstance(watershed_geom, dict):
-                    watershed_analysis_geom = watershed_geom.get("geometry")
-                    if watershed_analysis_geom is not None:
-                        logger.info(
-                            "LIVE ANALYSIS: watershed basin_id=%s area=%.2f km²",
-                            watershed_geom.get("basin_id"),
-                            watershed_geom.get("area_sq_km", -1),
-                        )
-
-                if not isinstance(watershed_geom, dict) or not watershed_geom.get("success"):
+                # 2. Strict validity check for actual delineated geometry
+                if (
+                    isinstance(watershed_geom, dict) 
+                    and watershed_geom.get("success") is True 
+                    and watershed_geom.get("geometry") is not None
+                ):
+                    watershed_analysis_geom = watershed_geom["geometry"]
+                    logger.info(
+                        "LIVE ANALYSIS: watershed basin_id=%s area=%.2f km²",
+                        watershed_geom.get("basin_id"),
+                        watershed_geom.get("area_sq_km", -1),
+                    )
+                else:
                     status_text.text(
                         "⚠️ Real watershed boundary unavailable; "
                         "using the 10 km AOI for analysis..."
                     )
                     watershed_analysis_geom = geom
+                    
+                # NOTE: watershed_geom is preserved exactly as returned from delineate_watershed
+                # (whether None or a failed dict) so the UI knows NOT to draw it as a real boundary.
+                # Do NOT overwrite watershed_geom with geom.
 
                 status_text.text("Running change detection analysis...")
                 progress.progress(60)
@@ -545,6 +553,12 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
                 if not ndvi_ts:
                     raise RuntimeError(
                         "NDVI timeseries returned no data from GEE. "
+                        "Live analysis aborted."
+                    )
+
+                if not water_ts:
+                    raise RuntimeError(
+                        "Water timeseries returned no data from GEE. "
                         "Live analysis aborted."
                     )
 
@@ -597,11 +611,13 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
                     # watershed geometry is available.
                     "drainage_geom": (
                         get_drainage_network(
-                            watershed_analysis_geom
+                            watershed_geom.get("geometry")
                         )
                         if (
                             show_layers.get("Drainage Network", False)
-                            and watershed_analysis_geom is not None
+                            and isinstance(watershed_geom, dict)
+                            and watershed_geom.get("success") is True
+                            and watershed_geom.get("geometry") is not None
                         )
                         else None
                     ),
@@ -773,7 +789,14 @@ with st.container(border=True):
     try:
         with st.spinner("Loading map..."):
             photos       = load_all_photos(watershed_id=chosen_id)
-            b_geo = res.get("watershed_geom")
+            _watershed_result = res.get("watershed_geom")
+            if (
+                isinstance(_watershed_result, dict)
+                and _watershed_result.get("success") is True
+            ):
+                b_geo = _watershed_result.get("geojson")
+            else:
+                b_geo = None
 
             # Demo boundary data is currently available only for Hiware Bazar.
             # Never reuse it for another watershed.
@@ -784,7 +807,14 @@ with st.container(border=True):
             ):
                 b_geo = demo_data.get("boundary")
 
-            d_geo = res.get("drainage_geom")
+            _drainage_result = res.get("drainage_geom")
+            if (
+                isinstance(_drainage_result, dict)
+                and _drainage_result.get("success") is True
+            ):
+                d_geo = _drainage_result.get("geojson")
+            else:
+                d_geo = None
 
             # Demo drainage data is also currently available only for Hiware Bazar.
             if (
