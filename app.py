@@ -90,12 +90,14 @@ except Exception:
 try:
     from geo_photos.photo_handler import (
         extract_gps_from_photo, create_photo_thumbnail,
+        create_photo_image_b64,
         find_nearest_reference_observation,
         save_photo_entry, load_all_photos
     )
 except Exception:
     def extract_gps_from_photo(*a, **kw): return {"has_gps": False}
     def create_photo_thumbnail(*a, **kw): return None
+    def create_photo_image_b64(*a, **kw): return None
     def find_nearest_reference_observation(*a, **kw):
         return {"matched": False, "error": "photo matcher unavailable"}
     def save_photo_entry(*a, **kw): return {}
@@ -125,14 +127,15 @@ if os.path.exists(_CSS_PATH):
         pass
 
 
-# --- 4. INITIALIZE GEE ---
+# --- 4. INITIALIZE APPLICATION ---
+# Start in Demo Mode so the UI loads immediately.
+# Google Earth Engine is initialized only when Live Mode is explicitly requested.
+
 if 'gee_initialized' not in st.session_state:
-    try:
-        gee_status = initialize_gee()
-    except Exception:
-        gee_status = False
-    st.session_state.gee_initialized = gee_status
-    st.session_state.demo_mode = not gee_status
+    st.session_state.gee_initialized = False
+
+if 'demo_mode' not in st.session_state:
+    st.session_state.demo_mode = True
 
 # Initialize session state vars
 for _key, _val in [
@@ -150,7 +153,7 @@ for _key, _val in [
 # Use the same readiness check used by the actual live analysis pipeline.
 if st.session_state.demo_mode:
     st.info(
-        "📁 Running in Demo Mode. Results are pre-computed datasets, not live satellite data.",
+        "Running in Demo Mode. Results are pre-computed datasets, not live satellite data.",
         icon="📁",
     )
 else:
@@ -161,12 +164,12 @@ else:
 
     if _banner_gee_ready:
         st.info(
-            "🛰️ Google Earth Engine ready. Click **📊 Analyze Watershed** to run live analysis.",
+            "Google Earth Engine ready. Click **📊 Analyze Watershed** to run live analysis.",
             icon="🛰️",
         )
     else:
         st.warning(
-            "⚠️ Google Earth Engine is not ready. Live analysis cannot run. "
+            "Google Earth Engine is not ready. Live analysis cannot run. "
             "Switch to Demo Mode or refresh the connection.",
             icon="⚠️",
         )
@@ -270,15 +273,42 @@ with st.sidebar:
 
     # Data Source controls
     st.markdown("#### 🛰️ Data Source")
-    force_demo = st.checkbox("Force Demo Mode", value=st.session_state.demo_mode)
-    if force_demo != st.session_state.demo_mode:
-        st.session_state.demo_mode = force_demo
-        # Clear results AND error so no stale state from the previous mode persists
-        st.session_state.analysis_results = None
-        st.session_state.analysis_error   = None
-        st.rerun()
+    force_demo = st.checkbox(
+        "Open Mode",
+        value=st.session_state.demo_mode
+    )
 
-    mode_str = "Demo (Local JSON)" if st.session_state.demo_mode else "Live (Google Earth Engine)"
+    if force_demo != st.session_state.demo_mode:
+
+        if force_demo:
+            # Switching to Demo Mode
+            st.session_state.demo_mode = True
+            st.session_state.analysis_results = None
+            st.session_state.analysis_error = None
+            st.rerun()
+
+        else:
+            # Switching to Live Mode
+            with st.spinner("Connecting to Google Earth Engine..."):
+                try:
+                    st.session_state.gee_initialized = initialize_gee()
+                except Exception:
+                    st.session_state.gee_initialized = False
+
+            if st.session_state.gee_initialized:
+                st.session_state.demo_mode = False
+                st.session_state.analysis_results = None
+                st.session_state.analysis_error = None
+            else:
+                st.session_state.demo_mode = True
+                st.warning(
+                    "Google Earth Engine could not be initialized. "
+                    "Open Mode remains active."
+                )
+
+            st.rerun()
+
+    mode_str = "Open (Pre-computed Data)" if st.session_state.demo_mode else "Live (Google Earth Engine)"
     st.caption(f"Current: **{mode_str}**")
 
     if st.button("🔄 Refresh Connection"):
@@ -412,8 +442,7 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
 
     if st.session_state.demo_mode:
         # ── DEMO MODE ──────────────────────────────────────────────────────────
-        with st.spinner("Loading demo analysis data..."):
-            time.sleep(0.8)
+        with st.spinner("Loading pre-computed analysis data..."):
             try:
                 st.session_state.analysis_results = load_from_demo_files(chosen_id)
             except Exception as e:
@@ -442,6 +471,9 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
                 # Shared AOI geometry — both composites use the same AOI
                 # so that preprocessing (cloud masking, clipping) is identical.
                 geom = _make_geometry(lat, lon, 10 * 1000)
+                # Smaller fallback for change-detection when no verified boundary
+                # is available (non-Hiware). Reduces GEE compute cost significantly.
+                fallback_analysis_geom = _make_geometry(lat, lon, 5 * 1000)
 
                 # ── BEFORE composite (s2cloudless pipeline) ───────────────────
                 status_text.text("Building cloud-masked BEFORE composite (2019)...")
@@ -479,33 +511,116 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
                 # Watershed boundary is optional visualization data.
                 # Never substitute the 10 km analysis AOI for a real watershed
                 # boundary because that would be geographically misleading.
-                watershed_geom = delineate_watershed(lat, lon)
+                _LOCAL_BOUNDARIES = {
+                    "hiware_bazar": demo_data.get("boundary"),  # already loaded FeatureCollection
+                }
+                _local_geojson = _LOCAL_BOUNDARIES.get(chosen_id)
 
-                # 1. Authoritative analysis geometry starts as None
-                watershed_analysis_geom = None
-
-                # 2. Strict validity check for actual delineated geometry
-                if (
-                    isinstance(watershed_geom, dict) 
-                    and watershed_geom.get("success") is True 
-                    and watershed_geom.get("geometry") is not None
-                ):
-                    watershed_analysis_geom = watershed_geom["geometry"]
-                    logger.info(
-                        "LIVE ANALYSIS: watershed basin_id=%s area=%.2f km²",
-                        watershed_geom.get("basin_id"),
-                        watershed_geom.get("area_sq_km", -1),
-                    )
+                if _local_geojson:
+                    # Convert local GeoJSON polygon to ee.Geometry for GEE analysis
+                    import ee as _ee
+                    _coords = _local_geojson["features"][0]["geometry"]["coordinates"]
+                    watershed_analysis_geom = _ee.Geometry.Polygon(_coords)
+                    # Use local pre-known area — avoids a blocking GEE round-trip.
+                    # The GEE .area().getInfo() call was removed because it stalled
+                    # the analysis pipeline before any timeseries work started.
+                    _area_known = selected_ws.get("area_sq_km") or 0.0
+                    # Synthetic watershed_geom dict so map display + slider work correctly
+                    watershed_geom = {
+                        "success":    True,
+                        "geojson":    _local_geojson["features"][0]["geometry"],
+                        "geometry":   watershed_analysis_geom,
+                        "area_sq_km": _area_known,
+                        "basin_id":   chosen_id,
+                    }
+                    logger.info("LIVE ANALYSIS: using verified local boundary for %s",
+                                chosen_id)
                 else:
-                    status_text.text(
-                        "⚠️ Real watershed boundary unavailable; "
-                        "using the 10 km AOI for analysis..."
-                    )
-                    watershed_analysis_geom = geom
-                    
+                    # Fall back to HydroBASINS for watersheds without a local boundary.
+                    #
+                    # SCALE-MISMATCH GUARD
+                    # HydroBASINS Level 7 basins are macro-hydrological units that can be
+                    # 50–350× larger than small project watersheds (verified across all 5
+                    # watersheds in this dataset). Using such a polygon for reduceRegion()
+                    # at scale=10 m would make GEE process thousands of km² — causing
+                    # multi-minute stalls or quota exhaustion.
+                    #
+                    # Rule: if hydrobasins_area / expected_project_area > MAX_RATIO, the
+                    # polygon is classified as a project-basin mismatch and MUST NOT be
+                    # used for computational analysis or displayed as the project boundary.
+                    # The 10 km analysis AOI (geom) is used as the computational fallback.
+                    #
+                    # Threshold: 20× — all four non-Hiware HydroBASINS polygons exceeded
+                    # 54× in testing; 20× provides a clear safety margin while allowing
+                    # genuine HydroBASINS matches (e.g. larger basins that happen to match
+                    # the project scale) to pass through.
+                    _HYDROBASINS_MAX_AREA_RATIO = 20.0
+
+                    watershed_geom = delineate_watershed(lat, lon)
+                    watershed_analysis_geom = None
+
+                    if (
+                        isinstance(watershed_geom, dict)
+                        and watershed_geom.get("success") is True
+                        and watershed_geom.get("geometry") is not None
+                    ):
+                        _hydro_area     = watershed_geom.get("area_sq_km") or 0.0
+                        _expected_area  = selected_ws.get("area_sq_km") or 0.0
+                        _area_ratio     = (
+                            _hydro_area / _expected_area
+                            if _expected_area > 0 else float("inf")
+                        )
+
+                        if _area_ratio > _HYDROBASINS_MAX_AREA_RATIO:
+                            # HydroBASINS polygon is clearly a macro-basin, not the
+                            # project watershed. Reject it for both computation AND display.
+                            logger.warning(
+                                "LIVE ANALYSIS: HydroBASINS basin_id=%s area=%.1f km² "
+                                "is %.0fx the expected project area (%.1f km²) — "
+                                "exceeds %.0fx threshold. Using 5 km AOI as fallback.",
+                                watershed_geom.get("basin_id"),
+                                _hydro_area,
+                                _area_ratio,
+                                _expected_area,
+                                _HYDROBASINS_MAX_AREA_RATIO,
+                            )
+                            # Use the 5 km fallback AOI for computation only.
+                            watershed_analysis_geom = fallback_analysis_geom
+                            # Clear watershed_geom so the UI does NOT draw the oversized
+                            # HydroBASINS polygon as the project boundary.
+                            watershed_geom = {
+                                "success":    False,
+                                "geojson":    None,
+                                "geometry":   None,
+                                "area_sq_km": None,
+                                "basin_id":   None,
+                                "error":      "HydroBASINS basin too large for project scale",
+                            }
+                            status_text.text(
+                                "Project boundary unavailable — "
+                                "Live analysis using the 5 km analysis AOI."
+                            )
+                        else:
+                            # HydroBASINS polygon is plausibly project-scale — use it.
+                            watershed_analysis_geom = watershed_geom["geometry"]
+                            logger.info(
+                                "LIVE ANALYSIS: HydroBASINS basin_id=%s area=%.2f km² "
+                                "(ratio=%.1fx — within threshold).",
+                                watershed_geom.get("basin_id"),
+                                _hydro_area,
+                                _area_ratio,
+                            )
+                    else:
+                        status_text.text(
+                            "Project boundary unavailable — "
+                            "Live analysis using the 5 km analysis AOI."
+                        )
+                        watershed_analysis_geom = fallback_analysis_geom
+
                 # NOTE: watershed_geom is preserved exactly as returned from delineate_watershed
                 # (whether None or a failed dict) so the UI knows NOT to draw it as a real boundary.
                 # Do NOT overwrite watershed_geom with geom.
+
 
                 status_text.text("Running change detection analysis...")
                 progress.progress(60)
@@ -540,14 +655,25 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
                         "as live satellite results."
                     )
 
-                status_text.text("Calculating timeseries & health score...")
+                # ── Timeseries — use default 5 km buffer geometry ──────────────
+                # The watershed polygon is kept for change detection (above) where
+                # spatial accuracy matters. The timeseries use a fixed-radius AOI
+                # so that year-over-year comparisons remain consistent across all
+                # watersheds regardless of polygon availability.
+                # Do NOT pass geometry=watershed_analysis_geom here.
+                status_text.text("Calculating NDVI timeseries (years " +
+                                 str(start_yr) + "–" + str(end_yr) + ")...")
                 progress.progress(80)
                 ndvi_ts  = generate_ndvi_timeseries(
-                    lat, lon, start_yr, end_yr, geometry=watershed_analysis_geom
+                    lat, lon, start_yr, end_yr
                 )
+                status_text.text("NDVI timeseries complete. Calculating water timeseries...")
+                progress.progress(85)
                 water_ts = generate_water_timeseries(
-                    lat, lon, start_yr, end_yr, geometry=watershed_analysis_geom
+                    lat, lon, start_yr, end_yr
                 )
+                status_text.text("Water timeseries complete. Calculating health score...")
+                progress.progress(90)
 
                 # Require at least minimal GEE timeseries results
                 if not ndvi_ts:
@@ -565,7 +691,7 @@ if analyze_btn or st.session_state.pop("_trigger_analysis", False):
                 health = calculate_watershed_health(change_result, ndvi_ts)
 
                 status_text.text("Generating map tile layers...")
-                progress.progress(90)
+                progress.progress(95)
                 tiles = get_all_tile_layers(
                     lat, lon,
                     # BUG-1 fix: before_dates/after_dates must be dicts for .get() calls.
@@ -681,7 +807,7 @@ if st.session_state.get('analysis_error') and not st.session_state.get('analysis
             st.session_state.analysis_error = None
             st.rerun()
     with _err_c2:
-        if st.button("📁 Switch to Demo Mode", use_container_width=True):
+        if st.button("📁 Switch to Open Mode", use_container_width=True):
             st.session_state.demo_mode     = True
             st.session_state.analysis_error = None
             st.session_state.analysis_results = None
@@ -693,7 +819,7 @@ if not st.session_state.get('analysis_results'):
     st.title("🌊 AquaVeda Dashboard")
     st.markdown(f"### {selected_ws.get('name', chosen_id)}, {selected_ws.get('state', '')}")
     _mode_label = (
-        "📁 Demo Analysis · Pre-computed Dataset"
+        "📁 Open Analysis · Pre-computed Data"
         if st.session_state.demo_mode
         else "🛰️ Ready for Live Satellite Analysis · Google Earth Engine"
     )
@@ -711,6 +837,105 @@ if not st.session_state.get('analysis_results'):
         # Do not duplicate the analysis pipeline here.
         st.session_state["_trigger_analysis"] = True
         st.rerun()
+
+    # ── Mode Guide — centered card between Analyze button and Overview ─────────
+    _mg_col_l, _mg_col_c, _mg_col_r = st.columns([1, 3, 1])
+    with _mg_col_c:
+        st.markdown(
+            """
+            <div style="
+                background: rgba(255,255,255,0.05);
+                border-left: 3px solid #4a9eff;
+                border-radius: 6px;
+                padding: 11px 14px;
+                margin: 14px 0 4px 0;
+                font-size: 0.82rem;
+                line-height: 1.5;
+                color: #c9d1d9;
+            ">
+            <span style="font-weight:600; color:#4a9eff;">ℹ️ Mode Guide</span><br>
+            <b>Live Mode:</b> Use for real-time satellite analysis when Google Earth Engine
+            and internet access are available.<br>
+            <b>Open Mode:</b> Use the pre-computed dataset when internet/API access is
+            unavailable or Live Mode cannot be used.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    # ── End Mode Guide ─────────────────────────────────────────────────────────
+
+    # ── Analysis Overview — visible only before analysis runs ─────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        "<h4 style='text-align:center; color:#7ca8d4; margin-bottom:4px;'>"
+        "Analysis Overview</h4>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align:center; color:#8b9bb4; font-size:0.83rem; margin-bottom:14px;'>"
+        "What this tool analyses for the selected watershed</p>",
+        unsafe_allow_html=True,
+    )
+
+    _card_style = (
+        "background: rgba(255,255,255,0.04);"
+        "border: 1px solid rgba(74,158,255,0.18);"
+        "border-radius: 8px;"
+        "padding: 16px 14px 14px 14px;"
+        "min-height: 130px;"
+        "color: #c9d1d9;"
+        "font-size: 0.82rem;"
+        "line-height: 1.5;"
+    )
+    _icon_style = "font-size:1.4rem; display:block; margin-bottom:6px;"
+    _title_style = "font-weight:600; font-size:0.88rem; color:#4a9eff; display:block; margin-bottom:4px;"
+
+    _ov_c1, _ov_c2, _ov_c3 = st.columns(3, gap="medium")
+
+    with _ov_c1:
+        st.markdown(
+            f"""<div style="{_card_style}">
+            <span style="{_icon_style}">🛰️</span>
+            <span style="{_title_style}">Satellite Analysis</span>
+            Analyze Sentinel-2 satellite imagery to evaluate watershed conditions
+            and changes over time.
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+    with _ov_c2:
+        st.markdown(
+            f"""<div style="{_card_style}">
+            <span style="{_icon_style}">📊</span>
+            <span style="{_title_style}">Environmental Indicators</span>
+            Track vegetation health, water availability, erosion risk, and
+            watershed health.
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+    with _ov_c3:
+        st.markdown(
+            f"""<div style="{_card_style}">
+            <span style="{_icon_style}">📍</span>
+            <span style="{_title_style}">Field Verification</span>
+            Review field observations and supporting photo evidence for
+            ground-level validation.
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        "<p style='"
+        "text-align:center; color:#5a6a7a; font-size:0.76rem;"
+        "margin-top:14px; letter-spacing:0.02em;"
+        "'>"
+        "Select a watershed &nbsp;→&nbsp; Choose Live / Open Mode "
+        "&nbsp;→&nbsp; Analyze &nbsp;→&nbsp; Explore results"
+        "</p>",
+        unsafe_allow_html=True,
+    )
+    # ── End Analysis Overview ──────────────────────────────────────────────────
 
     st.stop()
 
@@ -739,13 +964,25 @@ if _data_source == "live":
     _after_yr  = (_period.get("after")  or [""])[0][:4]
     _period_str = f" · {_before_yr}–{_after_yr}" if _before_yr and _after_yr else ""
     st.success(
-        f"🛰️ Live Satellite Analysis · Sentinel-2 · Google Earth Engine{_period_str}",
+        f"Live Satellite Analysis · Sentinel-2 · Google Earth Engine{_period_str}",
         icon="🛰️",
     )
 else:
     st.info(
-        "📁 Demo Analysis · Pre-computed Dataset · data/*.json",
+        "Open Mode Analysis · Pre-computed Local Dataset · data/*.json",
         icon="📁",
+    )
+
+# ── Analysis Mode explanation panel ───────────────────────────────────────────
+with st.expander("ℹ️ Analysis Mode", expanded=False):
+    st.markdown(
+        """
+**🛰️ Live Mode** — Live satellite analysis using Google Earth Engine.
+Recommended when internet / API access is available.
+
+**📁 Open Mode** — Pre-computed local analysis for demonstrations and use
+when Live Mode is unavailable.
+        """
     )
 
 # ── Metric cards ──────────────────────────────────────────────────────────────
@@ -785,6 +1022,14 @@ st.markdown("---")
 
 # ── FULL-WIDTH MAP ─────────────────────────────────────────────────────────────
 st.markdown("### 🗺️ Interactive Satellite Map")
+
+if _is_demo and chosen_id != "hiware_bazar":
+    st.info(
+        "ℹ️ Detailed watershed boundary data is available for Hiware Bazar in "
+        "this pre-computed local dataset. Other watershed locations are shown using verified "
+        "center coordinates and field observations."
+    )
+
 with st.container(border=True):
     try:
         with st.spinner("Loading map..."):
@@ -1001,7 +1246,7 @@ with tab_trends:
     _rainfall = res.get("rainfall")
     if _is_demo and (_monthly or _rainfall):
         st.markdown("---")
-        st.caption("📁 The following supplemental charts use pre-computed demo data.")
+        st.caption("📁 The following supplemental charts use pre-computed local data.")
         try:
             if _monthly and rainfall_ndvi_chart:
                 f_rn = rainfall_ndvi_chart(_monthly, _rainfall or [])
@@ -1050,7 +1295,10 @@ with tab_compare:
                     _lon = ws_info.get("lon", 76.0)
 
                     _ws_geom = res.get("watershed_geom")
-                    _ws_geom_json = json.dumps(_ws_geom) if _ws_geom else "null"
+                    if isinstance(_ws_geom, dict) and _ws_geom.get("geojson"):
+                        _ws_geom_json = json.dumps(_ws_geom["geojson"])
+                    else:
+                        _ws_geom_json = "null"
 
                     # Load the Leaflet side-by-side plugin only inside the
                     # comparison component. No project dependency is added.
@@ -1420,13 +1668,246 @@ html, body {{
                 )
 
         else:
-            st.info(
-                "📁 Demo Mode — interactive Sentinel-2 comparison is available "
-                "only for live satellite analysis.",
-                icon="📁"
+            # ── DEMO MODE: image-based draggable split comparison ──────────────
+            import base64
+
+            _assets_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "assets"
             )
 
-            # Keep demo metrics visible.
+            # ── Per-watershed image lookup ─────────────────────────────────────
+            # Primary: assets/before_after/<watershed_id>/before.png|after.png
+            # Fallback (Hiware Bazar only): legacy assets/demo_before.png / demo_after.png
+            _ba_dir = os.path.join(_assets_dir, "before_after", chosen_id)
+            _demo_before_path = os.path.join(_ba_dir, "before.png")
+            _demo_after_path  = os.path.join(_ba_dir, "after.png")
+
+            # Fallback for Hiware Bazar when new structure not yet populated
+            if not os.path.exists(_demo_before_path) and chosen_id == "hiware_bazar":
+                _demo_before_path = os.path.join(_assets_dir, "demo_before.png")
+            if not os.path.exists(_demo_after_path) and chosen_id == "hiware_bazar":
+                _demo_after_path = os.path.join(_assets_dir, "demo_after.png")
+
+            _before_missing = not os.path.exists(_demo_before_path)
+            _after_missing  = not os.path.exists(_demo_after_path)
+
+            if _before_missing or _after_missing:
+                st.info(
+                    f"Before/After imagery is not available for "
+                    f"{ws_info.get('name', chosen_id)} yet.",
+                    icon="🛰️",
+                )
+            else:
+                with open(_demo_before_path, "rb") as _bf:
+                    _before_b64 = base64.b64encode(_bf.read()).decode()
+                with open(_demo_after_path, "rb") as _af:
+                    _after_b64 = base64.b64encode(_af.read()).decode()
+
+                _before_data_uri = f"data:image/png;base64,{_before_b64}"
+                _after_data_uri  = f"data:image/png;base64,{_after_b64}"
+
+                _demo_slider_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html, body {{
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0f172a;
+}}
+
+#compare-container {{
+    position: relative;
+    width: 100%;
+    height: 520px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}}
+
+.compare-img {{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}}
+
+#img-after {{
+    clip-path: inset(0 0 0 50%);
+}}
+
+.compare-title {{
+    position: absolute;
+    top: 12px;
+    z-index: 1000;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.85);
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    pointer-events: none;
+}}
+
+.before-title {{ left: 12px; }}
+.after-title  {{ right: 12px; }}
+
+.compare-help {{
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.9);
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    pointer-events: none;
+    white-space: nowrap;
+}}
+
+#divider {{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    left: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 12px rgba(0,0,0,0.8);
+    z-index: 1001;
+    cursor: ew-resize;
+    pointer-events: auto;
+    touch-action: none;
+}}
+
+#handle {{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 42px;
+    height: 42px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: white;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    pointer-events: none;
+}}
+</style>
+</head>
+<body>
+
+<div id="compare-container">
+    <img id="img-before" class="compare-img"
+         src="{_before_data_uri}" alt="Before 2019">
+    <img id="img-after" class="compare-img"
+         src="{_after_data_uri}" alt="After 2024">
+
+    <div class="compare-title before-title">🔴 BEFORE &bull; 2019</div>
+    <div class="compare-title after-title">🟢 AFTER &bull; 2024</div>
+
+    <div class="compare-help">
+        &larr; 2019 baseline &nbsp;|&nbsp; 2024 post-intervention &rarr;
+    </div>
+
+    <div id="divider">
+        <div id="handle">&#8596;</div>
+    </div>
+</div>
+
+<script>
+(function() {{
+    const container = document.getElementById("compare-container");
+    const imgAfter  = document.getElementById("img-after");
+    const divider   = document.getElementById("divider");
+
+    let split    = 50;
+    let dragging = false;
+
+    function applySplit() {{
+        const w = container.clientWidth;
+        const px = Math.round(w * split / 100);
+        imgAfter.style.clipPath = "inset(0 0 0 " + px + "px)";
+        divider.style.left      = px + "px";
+    }}
+
+    function setSplit(clientX) {{
+        const rect = container.getBoundingClientRect();
+        split = Math.max(0, Math.min(100,
+            ((clientX - rect.left) / rect.width) * 100
+        ));
+        applySplit();
+    }}
+
+    // Mouse
+    divider.addEventListener("mousedown", function(e) {{
+        e.preventDefault(); e.stopPropagation(); dragging = true;
+    }});
+    document.addEventListener("mousemove", function(e) {{
+        if (dragging) {{ e.preventDefault(); setSplit(e.clientX); }}
+    }});
+    document.addEventListener("mouseup", function() {{ dragging = false; }});
+
+    // Touch
+    divider.addEventListener("touchstart", function(e) {{
+        e.preventDefault(); e.stopPropagation(); dragging = true;
+        if (e.touches.length) setSplit(e.touches[0].clientX);
+    }}, {{ passive: false }});
+    document.addEventListener("touchmove", function(e) {{
+        if (dragging && e.touches.length) {{
+            e.preventDefault(); setSplit(e.touches[0].clientX);
+        }}
+    }}, {{ passive: false }});
+    document.addEventListener("touchend", function() {{ dragging = false; }});
+
+    // Pointer (covers both mouse & touch uniformly)
+    divider.addEventListener("pointerdown", function(e) {{
+        e.preventDefault(); e.stopPropagation(); dragging = true;
+        try {{ divider.setPointerCapture(e.pointerId); }} catch(ex) {{}}
+        setSplit(e.clientX);
+    }});
+    document.addEventListener("pointermove", function(e) {{
+        if (dragging) {{ e.preventDefault(); setSplit(e.clientX); }}
+    }}, {{ passive: false }});
+    document.addEventListener("pointerup",     function() {{ dragging = false; }});
+    document.addEventListener("pointercancel", function() {{ dragging = false; }});
+
+    window.addEventListener("resize", applySplit);
+    setTimeout(applySplit, 100);
+}})();
+</script>
+
+</body>
+</html>
+"""
+                st.components.v1.html(
+                    _demo_slider_html,
+                    height=540,
+                    scrolling=False,
+                )
+
+            # ── Demo metric cards (always visible regardless of images) ────────
+            st.markdown("")
             c1, c2, c3 = st.columns(3)
 
             with c1:
@@ -1467,7 +1948,7 @@ html, body {{
                     f"{wat.get('change_percent', 0) or 0:.1f}%"
                 )
 
-            st.caption("📁 Demo Analysis · Pre-computed Dataset")
+            st.caption("📁 Open Analysis · Pre-computed Data")
 
     except Exception as e:
         st.warning(
@@ -1509,6 +1990,28 @@ with tab_landuse:
                 st.warning(f"Erosion chart could not be rendered: {e}")
         else:
             st.info("Erosion class data not available for this watershed.", icon="🏜️")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Field Verification image dialog — defined at module scope so Streamlit can
+# register it once per script run.  Image source and caption are passed via
+# session state so the correct per-card image is always shown.
+# ─────────────────────────────────────────────────────────────────────────────
+@st.dialog("📷 Field Image Viewer")
+def _field_image_dialog():
+    """Display the field image stored in st.session_state['_fv_img_src']."""
+    img_src = st.session_state.get("_fv_img_src")
+    caption  = st.session_state.get("_fv_img_caption", "Field Photo")
+    source   = st.session_state.get("_fv_img_source", "local")
+    if img_src:
+        st.image(img_src, use_container_width=True)
+        if source == "uploaded":
+            st.caption(f"📤 Uploaded Field Photo — {caption}")
+        else:
+            st.caption(f"🛰️ Representative imagery — {caption}")
+    else:
+        st.info("Image could not be loaded.")
+
 
 # ── TAB 5: FIELD VERIFICATION ─────────────────────────────────────────────────
 with tab_photos:
@@ -1573,9 +2076,10 @@ with tab_photos:
                                 from datetime import datetime
 
                                 # -------------------------------------------------
-                                # 1. Generate thumbnail for map popup / log
+                                # 1. Generate thumbnail and display image
                                 # -------------------------------------------------
                                 photo_thumbnail = create_photo_thumbnail(uploaded_file)
+                                photo_display = create_photo_image_b64(uploaded_file)
 
                                 # -------------------------------------------------
                                 # 2. Match GPS against the sample field
@@ -1686,6 +2190,7 @@ with tab_photos:
                                     },
                                     chosen_id,
                                     photo_base64=photo_thumbnail,
+                                    photo_image_b64=photo_display,
                                 )
 
                                 st.success(
@@ -1767,103 +2272,179 @@ with tab_photos:
                 f"**ℹ️ Unmatched / GPS unavailable:** {unmatched}"
             )
 
+            # ── Helper: resolve local field photo path for a sample observation
+            _field_photos_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "assets", "field_photos"
+            )
+
+            def _resolve_field_image(photo_entry: dict):
+                """Return absolute path to a local field image, or None if absent."""
+                placeholder = photo_entry.get("image_placeholder")
+                ws = photo_entry.get("watershed_id", "")
+                if not placeholder or not ws:
+                    return None
+                ws_dir = os.path.join(_field_photos_dir, ws)
+                for ext in (".jpg", ".jpeg", ".png", ".webp"):
+                    candidate = os.path.join(ws_dir, placeholder + ext)
+                    if os.path.exists(candidate):
+                        return candidate
+                return None
+
+            # ── CSS: dark background for field-verification card containers ──
+            # Targets bordered stVerticalBlock wrappers in this section only
+            # (scoped by page position; does not affect other tabs).
+            st.markdown(
+                """
+                <style>
+                div[data-testid="stVerticalBlockBorderWrapper"] {
+                    background: rgba(30, 41, 59, 0.55) !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
             p_cols = st.columns(3)
             for i, photo in enumerate(all_photos):
                 with p_cols[i % 3]:
                     status_color = {
                         'Functional': '#22c55e', 'Needs Repair': '#f59e0b',
-                        'Damaged': '#ef4444', 'Dry': '#64748b'
+                        'Damaged':    '#ef4444', 'Dry':          '#64748b'
                     }.get(photo.get('status', ''), '#3b82f6')
 
                     v_status = photo.get("verification_status", "not_matched")
                     if v_status == "reference_match":
-                        v_label = "✅ GPS Reference Match"
-                        v_color = "#166534"
-                        v_bg = "#dcfce7"
+                        v_label, v_color, v_bg = "✅ GPS Reference Match",      "#166534", "#dcfce7"
                     elif v_status == "reference_type_mismatch":
-                        v_label = "⚠️ Reference Type Mismatch"
-                        v_color = "#92400e"
-                        v_bg = "#fef3c7"
+                        v_label, v_color, v_bg = "⚠️ Reference Type Mismatch", "#92400e", "#fef3c7"
                     elif v_status == "no_reference_match":
-                        v_label = "ℹ️ No Reference Match"
-                        v_color = "#475569"
-                        v_bg = "#f1f5f9"
+                        v_label, v_color, v_bg = "ℹ️ No Reference Match",      "#475569", "#f1f5f9"
                     elif v_status == "gps_unavailable":
-                        v_label = "⚠️ GPS Unavailable"
-                        v_color = "#475569"
-                        v_bg = "#f1f5f9"
+                        v_label, v_color, v_bg = "⚠️ GPS Unavailable",         "#475569", "#f1f5f9"
                     else:
-                        v_label = "ℹ️ Verification Pending"
-                        v_color = "#475569"
-                        v_bg = "#f1f5f9"
+                        v_label, v_color, v_bg = "ℹ️ Verification Pending",    "#475569", "#f1f5f9"
 
                     ref_dist = photo.get("reference_distance_m")
-                    ref_id = photo.get("reference_observation_id")
-                    
-                    ref_html = ""
+                    ref_id   = photo.get("reference_observation_id")
 
+                    _ref_parts = []
                     if ref_dist is not None:
                         try:
-                            ref_html += (
+                            _ref_parts.append(
                                 f"<div style='margin-top:4px;'>"
-                                f"📏 Reference distance: {float(ref_dist):.1f} m"
-                                f"</div>"
+                                f"📏 Reference distance: {float(ref_dist):.1f} m</div>"
                             )
                         except (TypeError, ValueError):
                             pass
-
                     if ref_id is not None:
-                        ref_html += (
+                        _ref_parts.append(
                             f"<div style='margin-top:4px;'>"
-                            f"🔎 Reference observation: #{ref_id}"
-                            f"</div>"
+                            f"🔎 Reference observation: #{ref_id}</div>"
                         )
+                    ref_html = "".join(_ref_parts)
 
-                    verified_html = ""
-                    if photo.get("verified"):
-                        verified_html = (
-                            "<div style='margin-top:6px; font-size:11px; "
-                            "color:#166534; font-weight:600;'>"
-                            "✓ Manually Verified"
-                            "</div>"
-                        )
-
-                    verification_html = (
-                        f"<div style='margin-top:8px; padding:8px; "
-                        f"border-radius:7px; background:{v_bg}; "
-                        f"color:{v_color}; font-size:11px; font-weight:600;'>"
-                        f"{v_label}"
-                        f"{ref_html}"
-                        f"</div>"
+                    manually_verified_html = (
+                        "<div style='margin-top:6px; font-size:11px; "
+                        "color:#166534; font-weight:600;'>✓ Manually Verified</div>"
+                        if photo.get("verified") else ""
                     )
 
-                    card_html = f"""
-<div style="border:1px solid #334155; border-radius:10px; padding:12px; margin:6px 0; border-left:4px solid {status_color}; background:rgba(30,41,59,0.6);">
-    <strong style="color:#f8fafc;">
-        {photo.get('type', 'Photo')}
-    </strong>
-    <br>
-    <span style="color:#94a3b8; font-size:12px;">
-        📍 {photo.get('lat', 0):.4f},
-        {photo.get('lon', 0):.4f}
-    </span>
-    <br>
-    <span style="color:#94a3b8; font-size:12px;">
-        📅 {photo.get('date', '')}
-    </span>
-    <br>
-    <span style="background:{status_color}; color:white; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600;">
-        {photo.get('status', '')}
-    </span>
-    {verification_html}
-    {verified_html}
-    <br>
-    <span style="display:block; margin-top:6px; font-size:12px; color:#cbd5e1;">
-        {photo.get('description', '')[:60]}
-    </span>
-</div>
-"""
-                    st.markdown(card_html, unsafe_allow_html=True)
+                    verification_html = (
+                        f"<div style='margin-top:8px; padding:8px; border-radius:7px; "
+                        f"background:{v_bg}; color:{v_color}; font-size:11px; font-weight:600;'>"
+                        f"{v_label}{ref_html}</div>"
+                    )
+
+                    # ── Resolve image source ──────────────────────────────────
+                    _display_b64 = photo.get("photo_image_b64")
+                    _thumb_b64   = photo.get("thumbnail_b64")
+                    _local_img   = _resolve_field_image(photo)
+
+                    _has_image   = False
+                    _img_src_fv  = None
+                    _img_caption = photo.get("type", "Field Photo")
+                    _img_source  = "local"
+
+                    if _display_b64 or _thumb_b64:
+                        _best_b64 = _display_b64 or _thumb_b64
+                        _img_src_fv = (
+                            _best_b64
+                            if _best_b64.startswith("data:")
+                            else f"data:image/jpeg;base64,{_best_b64}"
+                        )
+                        _has_image  = True
+                        _img_source = "uploaded"
+                    elif _local_img:
+                        _img_src_fv = _local_img
+                        _has_image  = True
+                        _img_source = "local"
+
+                    # ── Safe coordinate formatting ────────────────────────────
+                    try:
+                        _lat_str = f"{float(photo.get('lat', 0)):.4f}"
+                        _lon_str = f"{float(photo.get('lon', 0)):.4f}"
+                    except (TypeError, ValueError):
+                        _lat_str = _lon_str = "N/A"
+
+                    # ── Card as native Streamlit container ────────────────────
+                    # Fixed height keeps every Field Verification card aligned.
+                    # The image button remains inside the card.
+                    with st.container(
+                        border=True,
+                        height=270,
+                        key=f"fv_card_{chosen_id}_{i}",
+                    ):
+                        # Header: type, coordinates, date with coloured accent bar
+                        st.markdown(
+                            f'<div style="border-left:4px solid {status_color};'
+                            f' padding-left:8px; margin-bottom:6px;">'
+                            f'<strong style="color:#f8fafc;">'
+                            f'{photo.get("type", "Photo")}</strong><br>'
+                            f'<span style="color:#94a3b8; font-size:12px;">'
+                            f'\U0001f4cd {_lat_str}, {_lon_str}</span><br>'
+                            f'<span style="color:#94a3b8; font-size:12px;">'
+                            f'\U0001f4c5 {photo.get("date", "")}</span>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                        # ── Image action — identical height on every card ─────
+                        # Active button for cards with an image; disabled button
+                        # (same pixel dimensions) for cards without an image.
+                        _btn_key = f"fv_img_btn_{chosen_id}_{i}"
+                        if _has_image:
+                            if st.button(
+                                "\U0001f4f7 Click to view image",
+                                key=_btn_key,
+                                use_container_width=True,
+                                help="Open field image viewer",
+                            ):
+                                st.session_state["_fv_img_src"]     = _img_src_fv
+                                st.session_state["_fv_img_caption"] = _img_caption
+                                st.session_state["_fv_img_source"]  = _img_source
+                                _field_image_dialog()
+                        else:
+                            st.button(
+                                "\U0001f4f7 Field image not available",
+                                key=_btn_key,
+                                use_container_width=True,
+                                disabled=True,
+                                help="No field image available for this observation",
+                            )
+
+                        # ── Status / verification / description footer ─────────
+                        st.markdown(
+                            f'<span style="background:{status_color}; color:white;'
+                            f' padding:2px 8px; border-radius:8px; font-size:11px;'
+                            f' font-weight:600;">{photo.get("status", "")}</span>'
+                            f'{verification_html}'
+                            f'{manually_verified_html}'
+                            f'<div style="margin-top:6px; font-size:12px; color:#cbd5e1;">'
+                            f'{photo.get("description", "")[:80]}</div>',
+                            unsafe_allow_html=True,
+                        )
+
+
         else:
             st.info("No field photos recorded for this watershed yet.")
     except Exception as e:

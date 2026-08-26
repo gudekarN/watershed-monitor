@@ -319,6 +319,55 @@ def create_photo_thumbnail(
             pass
 
 
+def create_photo_image_b64(
+    image_file: Any,
+    max_size: tuple = (800, 600),
+    quality: int = 90,
+) -> Optional[str]:
+    """
+    Encode an uploaded image at display quality for the field-verification card.
+
+    Unlike ``create_photo_thumbnail`` (200×150 / q=70 for Folium map popups),
+    this produces a larger, higher-quality representation suitable for
+    displaying inside a Streamlit card via ``st.image()``.
+
+    Args:
+        image_file : File-like object (Streamlit upload or open file handle).
+        max_size   : Maximum bounding box ``(width, height)``. Aspect ratio
+                     is always preserved.
+        quality    : JPEG quality (0–95). Defaults to 90.
+
+    Returns:
+        ``"data:image/jpeg;base64,<encoded>"`` string, or ``None`` on failure.
+    """
+    if not _PIL_OK:
+        logger.warning("create_photo_image_b64: Pillow not installed.")
+        return None
+
+    try:
+        image_file.seek(0)
+        img = _PILImage.open(image_file)
+
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+
+        img.thumbnail(max_size, _PILImage.LANCZOS)
+
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=quality, optimize=True)
+        b64 = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return f"data:image/jpeg;base64,{b64}"
+
+    except Exception as exc:
+        logger.error("create_photo_image_b64 failed: %s", exc)
+        return None
+    finally:
+        try:
+            image_file.seek(0)
+        except Exception:
+            pass
+
+
 # =============================================================================
 # 3. SAVE PHOTO ENTRY
 # =============================================================================
@@ -327,6 +376,7 @@ def save_photo_entry(
     metadata: Dict[str, Any],
     project_name: str,
     photo_base64: Optional[str] = None,
+    photo_image_b64: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Persist a new geo-photo entry to ``data/uploaded_photos.json``.
@@ -335,11 +385,16 @@ def save_photo_entry(
     unique timestamp-based ID so repeated uploads never overwrite each other.
 
     Args:
-        metadata    : dict that should include at minimum:
-                      lat, lon, type, status, description, date.
-                      Any extra keys are preserved.
-        project_name: Watershed / project name (stored as ``watershed_id``).
-        photo_base64: Optional base64 data-URI thumbnail to embed.
+        metadata       : dict that should include at minimum:
+                         lat, lon, type, status, description, date.
+                         Any extra keys are preserved.
+        project_name   : Watershed / project name (stored as ``watershed_id``).
+        photo_base64   : Optional base64 data-URI *thumbnail* (200x150 / q=70).
+                         Used for Folium map popup HTML only.
+        photo_image_b64: Optional base64 data-URI at display quality (800x600 /
+                         q=90). Used for the Field Verification card display.
+                         Stored separately from ``thumbnail_b64`` so the Folium
+                         popup always gets the smaller blob.
 
     Returns:
         The newly created entry dict (including the generated ``id``).
@@ -375,8 +430,13 @@ def save_photo_entry(
         ),
     }
 
+    # thumbnail_b64 — small blob for Folium map popup HTML
     if photo_base64:
         entry["thumbnail_b64"] = photo_base64
+
+    # photo_image_b64 — larger, higher-quality blob for card display
+    if photo_image_b64:
+        entry["photo_image_b64"] = photo_image_b64
 
     # -- Load existing entries ------------------------------------------------
     existing: List[Dict] = []
@@ -561,6 +621,19 @@ def create_photo_popup_html(photo_data: Dict[str, Any]) -> str:
             f'</span>'
         )
 
+    # Pre-compute the manually-verified snippet so it can be safely
+    # interpolated into the f-string below.  Embedding a Python
+    # conditional directly inside {{ }} in an f-string only escapes the
+    # braces — it does NOT evaluate the expression — causing the raw
+    # Python source to appear as visible text in the rendered popup.
+    manually_verified_html = (
+        '<span style="display:block; margin-top:6px; font-size:10px; color:#888;">'
+        "✓ Manually verified"
+        "</span>"
+        if photo_data.get("verified")
+        else ""
+    )
+
     html = f"""
 <div style="width:260px; font-family:Arial, sans-serif; font-size:13px;">
   {thumbnail_html}
@@ -601,13 +674,7 @@ def create_photo_popup_html(photo_data: Dict[str, Any]) -> str:
     {reference_html}
   </div>
 
-  {{
-      '<span style="display:block; margin-top:6px; font-size:10px; color:#888;">'
-      '✓ Manually verified'
-      '</span>'
-      if photo_data.get("verified")
-      else ''
-  }}
+  {manually_verified_html}
 
 </div>
 """.strip()

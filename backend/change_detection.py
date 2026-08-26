@@ -200,39 +200,45 @@ def detect_vegetation_change(
             unchanged.multiply(_pixel_area_image()).rename("unchanged_area_m2")
         ])
 
-        area_stats = area_img.reduceRegion(
-            reducer=ee.Reducer.sum(),
-            geometry=geometry,
-            scale=10,
-            maxPixels=1e9,
-            bestEffort=True
+        ndvi_img = ee.Image.cat([
+            ndvi_before.rename("ndvi_before"),
+            ndvi_after.rename("ndvi_after")
+        ])
+
+        # Combine both reduceRegion results server-side into a single
+        # ee.Dictionary, then call .getInfo() exactly once.
+        # This halves the number of blocking GEE round-trips compared to
+        # two separate .getInfo() calls while keeping scale, geometry,
+        # bestEffort, and all output keys completely unchanged.
+        combined_stats = (
+            area_img.reduceRegion(
+                reducer=ee.Reducer.sum(),
+                geometry=geometry,
+                scale=10,
+                maxPixels=1e9,
+                bestEffort=True
+            ).combine(
+                ndvi_img.reduceRegion(
+                    reducer=ee.Reducer.mean(),
+                    geometry=geometry,
+                    scale=10,
+                    maxPixels=1e9,
+                    bestEffort=True
+                )
+            )
         ).getInfo()
 
-        improved_ha   = round(area_stats.get("improved_area_m2", 0) / 10000, 2)
-        declined_ha   = round(area_stats.get("declined_area_m2", 0) / 10000, 2)
-        unchanged_ha  = round(area_stats.get("unchanged_area_m2", 0) / 10000, 2)
+        improved_ha   = round(combined_stats.get("improved_area_m2", 0) / 10000, 2)
+        declined_ha   = round(combined_stats.get("declined_area_m2", 0) / 10000, 2)
+        unchanged_ha  = round(combined_stats.get("unchanged_area_m2", 0) / 10000, 2)
         total_ha      = improved_ha + declined_ha + unchanged_ha
 
         percent_improved = (
             round(improved_ha / total_ha * 100, 1) if total_ha > 0 else 0.0
         )
 
-        # -- Scalar means -----------------------------------------------------
-        ndvi_img = ee.Image.cat([
-            ndvi_before.rename("ndvi_before"),
-            ndvi_after.rename("ndvi_after")
-        ])
-
-        ndvi_stats = ndvi_img.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=geometry,
-            scale=10,
-            maxPixels=1e9,
-            bestEffort=True
-        ).getInfo()
-
-        ndvi_before_mean = round(ndvi_stats.get("ndvi_before", 0.0), 3)
-        ndvi_after_mean  = round(ndvi_stats.get("ndvi_after", 0.0), 3)
+        ndvi_before_mean = round(combined_stats.get("ndvi_before", 0.0), 3)
+        ndvi_after_mean  = round(combined_stats.get("ndvi_after", 0.0), 3)
         change_mean      = round(ndvi_after_mean - ndvi_before_mean, 4)
 
         logger.info(

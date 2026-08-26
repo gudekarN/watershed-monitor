@@ -598,6 +598,14 @@ def generate_water_timeseries(
                 .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
             )
 
+            count = collection.size().getInfo()
+            if count == 0:
+                logger.info(
+                    "generate_water_timeseries: year %d — 0 images, skipping.",
+                    year
+                )
+                continue
+
             composite = collection.median().clip(geometry)
 
             # -- NDWI mean and Water Area ------------------------------------
@@ -624,14 +632,23 @@ def generate_water_timeseries(
                 geometry=geometry,
                 scale=10,
                 maxPixels=1e9,
+                bestEffort=True,
             ).getInfo()
 
-            ndwi_mean = stats.get("NDWI_mean") or stats.get("nd_mean")
+            ndwi_mean = (
+                stats.get("NDWI_mean")
+                or stats.get("mean")
+                or stats.get("nd_mean")
+            )
             if ndwi_mean is None:
                 logger.info("generate_water_timeseries: no data for %d, skipping.", year)
                 continue
 
-            area_m2 = float(stats.get("water_area_m2_sum") or 0)
+            area_m2 = float(
+                stats.get("water_area_m2_sum")
+                or stats.get("sum")
+                or 0
+            )
             area_ha = round(area_m2 / 10_000, 4)
 
             results.append({
@@ -646,7 +663,9 @@ def generate_water_timeseries(
 
         except Exception as exc:
             logger.error(
-                "generate_water_timeseries: year %d failed (%s), skipping.", year, exc
+                "generate_water_timeseries: year %d failed — skipping.",
+                year,
+                exc_info=True,
             )
             continue
 

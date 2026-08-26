@@ -16,7 +16,9 @@ EE_PROJECT_ID = os.getenv("EE_PROJECT_ID")
 GEE_AVAILABLE = False
 DEMO_MODE = True
 
-# List of 5 sample watersheds for the dashboard
+# Authoritative fallback watershed configuration.
+# Used by app.py when data/sample_watersheds.json cannot be loaded.
+# data/sample_watersheds.json is the primary source; this list must stay in sync with it.
 SAMPLE_WATERSHEDS = [
     {
         "id": "hiware_bazar",
@@ -70,59 +72,6 @@ SAMPLE_WATERSHEDS = [
     }
 ]
 
-# Dictionary of 5 sample watershed locations in India
-WATERSHEDS = {
-    "Hiware Bazar": {
-        "name": "Hiware Bazar",
-        "lat": 18.9667,
-        "lon": 74.6833,
-        "state": "Maharashtra",
-        "district": "Ahmednagar",
-        "project_type": "Water Conservation",
-        "start_year": 1990,
-        "structures_count": 52
-    },
-    "Ralegan Siddhi": {
-        "name": "Ralegan Siddhi",
-        "lat": 19.0067,
-        "lon": 74.3411,
-        "state": "Maharashtra",
-        "district": "Ahmednagar",
-        "project_type": "Watershed Development",
-        "start_year": 1975,
-        "structures_count": 48
-    },
-    "Arvari River": {
-        "name": "Arvari River",
-        "lat": 27.2667,
-        "lon": 76.1333,
-        "state": "Rajasthan",
-        "district": "Alwar",
-        "project_type": "River Revival",
-        "start_year": 1986,
-        "structures_count": 375
-    },
-    "Sukhomajri": {
-        "name": "Sukhomajri",
-        "lat": 30.8242,
-        "lon": 76.8837,
-        "state": "Haryana",
-        "district": "Panchkula",
-        "project_type": "Soil & Water Conservation",
-        "start_year": 1970,
-        "structures_count": 4
-    },
-    "Lakshman Jhula": {
-        "name": "Lakshman Jhula",
-        "lat": 30.1235,
-        "lon": 78.3276,
-        "state": "Uttarakhand",
-        "district": "Pauri Garhwal",
-        "project_type": "Himalayan Watershed",
-        "start_year": 2005,
-        "structures_count": 15
-    }
-}
 
 # Date ranges for before/after analysis
 DATE_RANGES = {
