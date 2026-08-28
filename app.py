@@ -1240,23 +1240,9 @@ with tab_trends:
             st.info("Click Analyze to generate water area trend data.", icon="💧")
 
     # ── Demo-only supplemental charts (monthly NDVI + rainfall) ───────────────
-    # These fields only exist in demo results; they are intentionally omitted
-    # from live results until live implementations are available.
-    _monthly = res.get("monthly_ndvi")
-    _rainfall = res.get("rainfall")
-    if _is_demo and (_monthly or _rainfall):
-        st.markdown("---")
-        st.caption("📁 The following supplemental charts use pre-computed local data.")
-        try:
-            if _monthly and rainfall_ndvi_chart:
-                f_rn = rainfall_ndvi_chart(_monthly, _rainfall or [])
-                if f_rn:
-                    st.plotly_chart(f_rn, use_container_width=True)
-        except Exception as e:
-            st.warning(f"Monthly NDVI/rainfall chart could not be rendered: {e}")
-    elif not _is_demo and not _monthly:
-        # Live mode — these metrics not yet implemented for live GEE
-        pass  # Charts simply absent; no misleading placeholder shown
+    # Removed per user request: "Remove only the UI rendering of this chart.
+    # Do NOT remove the rainfall feature from the data model."
+    pass
 
 # ── TAB 3: BEFORE/AFTER ───────────────────────────────────────────────────────
 with tab_compare:

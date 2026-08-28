@@ -23,3 +23,7 @@ __pycache__/
 data/cache/
 geo_photos/uploads/
 temp_charts/
+
+# ── Synchronization / validation artifacts (not needed at runtime) ─────────────
+data/live_snapshot.json
+data/backups/

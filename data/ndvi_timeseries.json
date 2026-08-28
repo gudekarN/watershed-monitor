@@ -1,234 +1,204 @@
 {
   "hiware_bazar": [
     {
-      "year": 2017,
-      "ndvi_mean": 0.22,
-      "ndvi_max": 0.45,
-      "ndvi_min": 0.08
-    },
-    {
-      "year": 2018,
-      "ndvi_mean": 0.25,
-      "ndvi_max": 0.48,
-      "ndvi_min": 0.1
-    },
-    {
       "year": 2019,
-      "ndvi_mean": 0.31,
-      "ndvi_max": 0.52,
-      "ndvi_min": 0.12
+      "ndvi_mean": 0.3178,
+      "ndvi_min": -0.1758,
+      "ndvi_max": 0.7865
     },
     {
       "year": 2020,
-      "ndvi_mean": 0.38,
-      "ndvi_max": 0.58,
-      "ndvi_min": 0.15
+      "ndvi_mean": 0.3662,
+      "ndvi_min": -1.0,
+      "ndvi_max": 0.9551
     },
     {
       "year": 2021,
-      "ndvi_mean": 0.44,
-      "ndvi_max": 0.63,
-      "ndvi_min": 0.18
+      "ndvi_mean": 0.3439,
+      "ndvi_min": -0.9123,
+      "ndvi_max": 0.9218
     },
     {
       "year": 2022,
-      "ndvi_mean": 0.49,
-      "ndvi_max": 0.68,
-      "ndvi_min": 0.22
+      "ndvi_mean": 0.2967,
+      "ndvi_min": -0.2471,
+      "ndvi_max": 0.909
     },
     {
       "year": 2023,
-      "ndvi_mean": 0.53,
-      "ndvi_max": 0.72,
-      "ndvi_min": 0.25
+      "ndvi_mean": 0.3288,
+      "ndvi_min": -1.0,
+      "ndvi_max": 0.8996
     },
     {
       "year": 2024,
-      "ndvi_mean": 0.58,
-      "ndvi_max": 0.76,
-      "ndvi_min": 0.28
+      "ndvi_mean": 0.424,
+      "ndvi_min": -0.6609,
+      "ndvi_max": 0.9312
     }
   ],
   "ralegan_siddhi": [
     {
-      "year": 2017,
-      "ndvi_mean": 0.2,
-      "ndvi_max": 0.42,
-      "ndvi_min": 0.07
-    },
-    {
       "year": 2018,
-      "ndvi_mean": 0.26,
-      "ndvi_max": 0.5,
-      "ndvi_min": 0.11
+      "ndvi_mean": 0.3307,
+      "ndvi_min": -0.005,
+      "ndvi_max": 0.8363
     },
     {
       "year": 2019,
-      "ndvi_mean": 0.32,
-      "ndvi_max": 0.55,
-      "ndvi_min": 0.13
+      "ndvi_mean": 0.4133,
+      "ndvi_min": -0.2642,
+      "ndvi_max": 0.8864
     },
     {
       "year": 2020,
-      "ndvi_mean": 0.37,
-      "ndvi_max": 0.6,
-      "ndvi_min": 0.16
+      "ndvi_mean": 0.4559,
+      "ndvi_min": -1.0,
+      "ndvi_max": 0.9878
     },
     {
       "year": 2021,
-      "ndvi_mean": 0.42,
-      "ndvi_max": 0.64,
-      "ndvi_min": 0.19
+      "ndvi_mean": 0.4917,
+      "ndvi_min": -1.0,
+      "ndvi_max": 0.9641
     },
     {
       "year": 2022,
-      "ndvi_mean": 0.46,
-      "ndvi_max": 0.67,
-      "ndvi_min": 0.21
+      "ndvi_mean": 0.3282,
+      "ndvi_min": -0.2481,
+      "ndvi_max": 0.9213
     },
     {
       "year": 2023,
-      "ndvi_mean": 0.5,
-      "ndvi_max": 0.7,
-      "ndvi_min": 0.24
+      "ndvi_mean": 0.4275,
+      "ndvi_min": -0.2814,
+      "ndvi_max": 0.9174
     },
     {
       "year": 2024,
-      "ndvi_mean": 0.54,
-      "ndvi_max": 0.74,
-      "ndvi_min": 0.27
+      "ndvi_mean": 0.4723,
+      "ndvi_min": -0.7664,
+      "ndvi_max": 0.9721
     }
   ],
   "arvari_river": [
     {
       "year": 2017,
-      "ndvi_mean": 0.24,
-      "ndvi_max": 0.47,
-      "ndvi_min": 0.09
+      "ndvi_mean": 0.3237,
+      "ndvi_min": -0.428,
+      "ndvi_max": 0.9014
     },
     {
       "year": 2018,
-      "ndvi_mean": 0.3,
-      "ndvi_max": 0.54,
-      "ndvi_min": 0.13
+      "ndvi_mean": 0.3758,
+      "ndvi_min": -0.0926,
+      "ndvi_max": 0.8601
     },
     {
       "year": 2019,
-      "ndvi_mean": 0.37,
-      "ndvi_max": 0.6,
-      "ndvi_min": 0.17
+      "ndvi_mean": 0.2783,
+      "ndvi_min": -0.0787,
+      "ndvi_max": 0.7653
     },
     {
       "year": 2020,
-      "ndvi_mean": 0.44,
-      "ndvi_max": 0.65,
-      "ndvi_min": 0.21
+      "ndvi_mean": 0.3272,
+      "ndvi_min": -0.0625,
+      "ndvi_max": 0.8157
     },
     {
       "year": 2021,
-      "ndvi_mean": 0.51,
-      "ndvi_max": 0.7,
-      "ndvi_min": 0.25
+      "ndvi_mean": 0.3892,
+      "ndvi_min": -0.0567,
+      "ndvi_max": 0.8396
     },
     {
       "year": 2022,
-      "ndvi_mean": 0.57,
-      "ndvi_max": 0.74,
-      "ndvi_min": 0.29
+      "ndvi_mean": 0.4034,
+      "ndvi_min": -0.0595,
+      "ndvi_max": 0.8353
     },
     {
       "year": 2023,
-      "ndvi_mean": 0.62,
-      "ndvi_max": 0.78,
-      "ndvi_min": 0.33
+      "ndvi_mean": 0.3617,
+      "ndvi_min": -0.2284,
+      "ndvi_max": 0.8598
     },
     {
       "year": 2024,
-      "ndvi_mean": 0.66,
-      "ndvi_max": 0.82,
-      "ndvi_min": 0.36
+      "ndvi_mean": 0.3826,
+      "ndvi_min": -0.2401,
+      "ndvi_max": 0.8371
     }
   ],
   "sukhomajri": [
     {
       "year": 2020,
-      "ndvi_mean": 0.28,
-      "ndvi_max": 0.5,
-      "ndvi_min": 0.12
+      "ndvi_mean": 0.5831,
+      "ndvi_min": -0.789,
+      "ndvi_max": 0.8715
     },
     {
       "year": 2021,
-      "ndvi_mean": 0.32,
-      "ndvi_max": 0.54,
-      "ndvi_min": 0.14
+      "ndvi_mean": 0.6531,
+      "ndvi_min": -0.7444,
+      "ndvi_max": 0.8982
     },
     {
       "year": 2022,
-      "ndvi_mean": 0.36,
-      "ndvi_max": 0.57,
-      "ndvi_min": 0.17
+      "ndvi_mean": 0.619,
+      "ndvi_min": -0.3777,
+      "ndvi_max": 0.8627
     },
     {
       "year": 2023,
-      "ndvi_mean": 0.39,
-      "ndvi_max": 0.6,
-      "ndvi_min": 0.19
+      "ndvi_mean": 0.6321,
+      "ndvi_min": -0.6181,
+      "ndvi_max": 0.9097
     },
     {
       "year": 2024,
-      "ndvi_mean": 0.42,
-      "ndvi_max": 0.63,
-      "ndvi_min": 0.21
+      "ndvi_mean": 0.6303,
+      "ndvi_min": -0.7339,
+      "ndvi_max": 0.8885
     }
   ],
   "anantapur": [
     {
-      "year": 2017,
-      "ndvi_mean": 0.2,
-      "ndvi_max": 0.38,
-      "ndvi_min": 0.06
-    },
-    {
-      "year": 2018,
-      "ndvi_mean": 0.21,
-      "ndvi_max": 0.39,
-      "ndvi_min": 0.06
-    },
-    {
       "year": 2019,
-      "ndvi_mean": 0.22,
-      "ndvi_max": 0.4,
-      "ndvi_min": 0.07
+      "ndvi_mean": 0.2352,
+      "ndvi_min": -0.2366,
+      "ndvi_max": 0.8812
     },
     {
       "year": 2020,
-      "ndvi_mean": 0.21,
-      "ndvi_max": 0.38,
-      "ndvi_min": 0.06
+      "ndvi_mean": 0.346,
+      "ndvi_min": -0.5561,
+      "ndvi_max": 0.793
     },
     {
       "year": 2021,
-      "ndvi_mean": 0.23,
-      "ndvi_max": 0.41,
-      "ndvi_min": 0.07
+      "ndvi_mean": 0.2815,
+      "ndvi_min": -0.3854,
+      "ndvi_max": 0.8741
     },
     {
       "year": 2022,
-      "ndvi_mean": 0.24,
-      "ndvi_max": 0.42,
-      "ndvi_min": 0.07
+      "ndvi_mean": 0.3917,
+      "ndvi_min": -1.0,
+      "ndvi_max": 0.9358
     },
     {
       "year": 2023,
-      "ndvi_mean": 0.26,
-      "ndvi_max": 0.44,
-      "ndvi_min": 0.08
+      "ndvi_mean": 0.3125,
+      "ndvi_min": -0.5332,
+      "ndvi_max": 0.8759
     },
     {
       "year": 2024,
-      "ndvi_mean": 0.28,
-      "ndvi_max": 0.45,
-      "ndvi_min": 0.08
+      "ndvi_mean": 0.3603,
+      "ndvi_min": -0.5852,
+      "ndvi_max": 0.9187
     }
   ]
 }

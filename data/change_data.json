@@ -1,40 +1,40 @@
 {
   "hiware_bazar": {
     "vegetation": {
-      "ndvi_before": 0.28,
-      "ndvi_after": 0.58,
-      "change": 0.3,
-      "improved_area_ha": 520,
-      "declined_area_ha": 35,
-      "unchanged_area_ha": 295,
-      "percent_improved": 61.2
+      "ndvi_before": 0.242,
+      "ndvi_after": 0.275,
+      "change": 0.033,
+      "improved_area_ha": 816.29,
+      "declined_area_ha": 292.38,
+      "unchanged_area_ha": 908.66,
+      "percent_improved": 40.5
     },
     "water": {
-      "area_before_ha": 3.2,
-      "area_after_ha": 12.8,
-      "change_ha": 9.6,
-      "change_percent": 300.0,
+      "area_before_ha": 79.32,
+      "area_after_ha": 119.72,
+      "change_ha": 40.4,
+      "change_percent": 50.9,
       "new_water_bodies": 3,
       "months_with_water_before": 4,
       "months_with_water_after": 9
     },
     "erosion": {
-      "high_risk_before_ha": 280,
-      "high_risk_after_ha": 95,
-      "reduction_percent": 66.1,
+      "high_risk_before_ha": 17.6,
+      "high_risk_after_ha": 9.5,
+      "reduction_percent": 46.0,
       "classes_before": {
-        "Very Low": 120,
-        "Low": 180,
-        "Medium": 270,
-        "High": 200,
-        "Very High": 80
+        "Very Low": 65.0,
+        "Low": 1360.1,
+        "Medium": 574.6,
+        "High": 17.6,
+        "Very High": 0.0
       },
       "classes_after": {
-        "Very Low": 250,
-        "Low": 280,
-        "Medium": 220,
-        "High": 80,
-        "Very High": 20
+        "Very Low": 108.0,
+        "Low": 1421.0,
+        "Medium": 478.8,
+        "High": 9.5,
+        "Very High": 0.0
       }
     },
     "landuse": {
@@ -63,40 +63,40 @@
   },
   "ralegan_siddhi": {
     "vegetation": {
-      "ndvi_before": 0.26,
-      "ndvi_after": 0.54,
-      "change": 0.28,
-      "improved_area_ha": 610,
-      "declined_area_ha": 42,
-      "unchanged_area_ha": 578,
-      "percent_improved": 49.8
+      "ndvi_before": 0.246,
+      "ndvi_after": 0.28,
+      "change": 0.034,
+      "improved_area_ha": 3014.45,
+      "declined_area_ha": 952.57,
+      "unchanged_area_ha": 3769.24,
+      "percent_improved": 39.0
     },
     "water": {
-      "area_before_ha": 4.5,
-      "area_after_ha": 14.5,
-      "change_ha": 10.0,
-      "change_percent": 222.2,
+      "area_before_ha": 9.64,
+      "area_after_ha": 9.14,
+      "change_ha": -0.5,
+      "change_percent": -5.2,
       "new_water_bodies": 2,
       "months_with_water_before": 5,
       "months_with_water_after": 10
     },
     "erosion": {
-      "high_risk_before_ha": 310,
-      "high_risk_after_ha": 115,
-      "reduction_percent": 62.9,
+      "high_risk_before_ha": 3.2,
+      "high_risk_after_ha": 1.2,
+      "reduction_percent": 62.5,
       "classes_before": {
-        "Very Low": 100,
-        "Low": 160,
-        "Medium": 300,
-        "High": 230,
-        "Very High": 80
+        "Very Low": 118.5,
+        "Low": 5919.8,
+        "Medium": 1694.7,
+        "High": 3.2,
+        "Very High": 0.0
       },
       "classes_after": {
-        "Very Low": 240,
-        "Low": 290,
-        "Medium": 230,
-        "High": 90,
-        "Very High": 20
+        "Very Low": 172.3,
+        "Low": 6274.4,
+        "Medium": 1288.2,
+        "High": 1.2,
+        "Very High": 0.0
       }
     },
     "landuse": {
@@ -125,40 +125,40 @@
   },
   "arvari_river": {
     "vegetation": {
-      "ndvi_before": 0.24,
-      "ndvi_after": 0.66,
-      "change": 0.42,
-      "improved_area_ha": 1820,
-      "declined_area_ha": 55,
-      "unchanged_area_ha": 705,
-      "percent_improved": 71.2
+      "ndvi_before": 0.307,
+      "ndvi_after": 0.319,
+      "change": 0.012,
+      "improved_area_ha": 2731.87,
+      "declined_area_ha": 1742.13,
+      "unchanged_area_ha": 3273.6,
+      "percent_improved": 35.3
     },
     "water": {
-      "area_before_ha": 5.5,
-      "area_after_ha": 40.2,
-      "change_ha": 34.7,
-      "change_percent": 630.9,
+      "area_before_ha": 0.57,
+      "area_after_ha": 0.72,
+      "change_ha": 0.15,
+      "change_percent": 26.3,
       "new_water_bodies": 8,
       "months_with_water_before": 3,
       "months_with_water_after": 11
     },
     "erosion": {
-      "high_risk_before_ha": 920,
-      "high_risk_after_ha": 185,
-      "reduction_percent": 79.9,
+      "high_risk_before_ha": 148.79999999999998,
+      "high_risk_after_ha": 114.3,
+      "reduction_percent": 23.2,
       "classes_before": {
-        "Very Low": 200,
-        "Low": 450,
-        "Medium": 900,
-        "High": 700,
-        "Very High": 330
+        "Very Low": 342.0,
+        "Low": 6776.2,
+        "Medium": 480.5,
+        "High": 123.1,
+        "Very High": 25.7
       },
       "classes_after": {
-        "Very Low": 700,
-        "Low": 900,
-        "Medium": 750,
-        "High": 150,
-        "Very High": 80
+        "Very Low": 187.6,
+        "Low": 6971.8,
+        "Medium": 473.8,
+        "High": 95.0,
+        "Very High": 19.3
       }
     },
     "landuse": {
@@ -187,40 +187,40 @@
   },
   "sukhomajri": {
     "vegetation": {
-      "ndvi_before": 0.28,
-      "ndvi_after": 0.42,
-      "change": 0.14,
-      "improved_area_ha": 280,
-      "declined_area_ha": 30,
-      "unchanged_area_ha": 900,
-      "percent_improved": 23.1
+      "ndvi_before": 0.534,
+      "ndvi_after": 0.513,
+      "change": -0.021,
+      "improved_area_ha": 886.25,
+      "declined_area_ha": 1897.75,
+      "unchanged_area_ha": 4968.53,
+      "percent_improved": 11.4
     },
     "water": {
-      "area_before_ha": 1.5,
-      "area_after_ha": 4.5,
-      "change_ha": 3.0,
-      "change_percent": 200.0,
+      "area_before_ha": 45.42,
+      "area_after_ha": 43.37,
+      "change_ha": -2.05,
+      "change_percent": -4.5,
       "new_water_bodies": 1,
       "months_with_water_before": 4,
       "months_with_water_after": 7
     },
     "erosion": {
-      "high_risk_before_ha": 180,
-      "high_risk_after_ha": 110,
-      "reduction_percent": 38.9,
+      "high_risk_before_ha": 12.6,
+      "high_risk_after_ha": 16.400000000000002,
+      "reduction_percent": -30.2,
       "classes_before": {
-        "Very Low": 80,
-        "Low": 120,
-        "Medium": 200,
-        "High": 150,
-        "Very High": 60
+        "Very Low": 1404.2,
+        "Low": 5445.9,
+        "Medium": 889.8,
+        "High": 12.5,
+        "Very High": 0.1
       },
       "classes_after": {
-        "Very Low": 160,
-        "Low": 180,
-        "Medium": 200,
-        "High": 90,
-        "Very High": 30
+        "Very Low": 1249.5,
+        "Low": 5447.6,
+        "Medium": 1039.0,
+        "High": 16.1,
+        "Very High": 0.3
       }
     },
     "landuse": {
@@ -249,40 +249,40 @@
   },
   "anantapur": {
     "vegetation": {
-      "ndvi_before": 0.22,
-      "ndvi_after": 0.28,
-      "change": 0.06,
-      "improved_area_ha": 180,
-      "declined_area_ha": 210,
-      "unchanged_area_ha": 1480,
-      "percent_improved": 9.6
+      "ndvi_before": 0.24,
+      "ndvi_after": 0.24,
+      "change": 0.0,
+      "improved_area_ha": 2375.51,
+      "declined_area_ha": 1760.03,
+      "unchanged_area_ha": 3596.54,
+      "percent_improved": 30.7
     },
     "water": {
-      "area_before_ha": 1.2,
-      "area_after_ha": 1.4,
-      "change_ha": 0.2,
-      "change_percent": 16.7,
+      "area_before_ha": 72.56,
+      "area_after_ha": 454.66,
+      "change_ha": 382.1,
+      "change_percent": 526.6,
       "new_water_bodies": 0,
       "months_with_water_before": 2,
       "months_with_water_after": 2
     },
     "erosion": {
-      "high_risk_before_ha": 560,
-      "high_risk_after_ha": 530,
-      "reduction_percent": 5.4,
+      "high_risk_before_ha": 10.7,
+      "high_risk_after_ha": 9.4,
+      "reduction_percent": 12.1,
       "classes_before": {
-        "Very Low": 90,
-        "Low": 200,
-        "Medium": 420,
-        "High": 430,
-        "Very High": 130
+        "Very Low": 357.8,
+        "Low": 6807.9,
+        "Medium": 555.7,
+        "High": 10.5,
+        "Very High": 0.2
       },
       "classes_after": {
-        "Very Low": 100,
-        "Low": 210,
-        "Medium": 430,
-        "High": 400,
-        "Very High": 130
+        "Very Low": 406.5,
+        "Low": 6480.4,
+        "Medium": 835.7,
+        "High": 9.3,
+        "Very High": 0.1
       }
     },
     "landuse": {

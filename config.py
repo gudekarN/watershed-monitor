@@ -26,7 +26,7 @@ SAMPLE_WATERSHEDS = [
         "lat": 19.3516,
         "lon": 74.5535,
         "state": "Maharashtra",
-        "district": "Ahmednagar",
+        "district": "Ahilyanagar",
         "project_type": "Integrated Watershed Development",
         "start_year": 2019
     },
@@ -36,7 +36,7 @@ SAMPLE_WATERSHEDS = [
         "lat": 18.8752,
         "lon": 74.4960,
         "state": "Maharashtra",
-        "district": "Ahmednagar",
+        "district": "Ahilyanagar",
         "project_type": "Community Watershed Management",
         "start_year": 2018
     },
