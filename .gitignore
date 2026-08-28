@@ -1,6 +1,25 @@
+# ── Environment & secrets ─────────────────────────────────────────────────────
 .env
+.env.*
+.streamlit/secrets.toml
+
+# ── Google Earth Engine / GCP credential files ────────────────────────────────
+aquaveda-watershed-14ddca361142.json
+*service_account*.json
+*service-account*.json
+*credentials*.json
+application_default_credentials.json
+*.pem
+*.p12
+*.pfx
+
+# ── Python build artifacts ────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# ── Runtime-generated / temporary directories ─────────────────────────────────
 data/cache/
 geo_photos/uploads/
 temp_charts/
-__pycache__/
-*.pyc

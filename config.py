@@ -116,14 +116,18 @@ def initialize_gee() -> bool:
 
     Strategy:
       1. Reload EE_PROJECT_ID from .env in case the file was updated at runtime.
-      2. Attempt ee.Initialize(project=EE_PROJECT_ID) — succeeds on systems that
-         are already authenticated via ``earthengine authenticate`` or a service
-         account credential file.
-      3. If that raises any exception, fall back to ee.Authenticate() (opens a
-         browser OAuth flow) and then retry ee.Initialize(project=EE_PROJECT_ID).
-      4. If both attempts fail, set GEE_AVAILABLE=False and DEMO_MODE=True and
+      2. [Streamlit Cloud] If ``st.secrets`` contains a ``[gee_service_account]``
+         section, use those credentials to build a service-account credential
+         object and call ``ee.Initialize(credentials=..., project=EE_PROJECT_ID)``.
+         No secret values are written to logs.
+      3. Attempt ``ee.Initialize(project=EE_PROJECT_ID)`` — succeeds on systems
+         already authenticated via ``earthengine authenticate`` or a service-
+         account credential file (local / Open Mode).
+      4. If that raises any exception, fall back to ``ee.Authenticate()`` (opens a
+         browser OAuth flow) and then retry ``ee.Initialize(project=EE_PROJECT_ID)``.
+      5. If all attempts fail, set GEE_AVAILABLE=False and DEMO_MODE=True and
          print a human-readable warning so the app can fall back gracefully.
-      5. On success, set GEE_AVAILABLE=True and DEMO_MODE=False.
+      6. On success, set GEE_AVAILABLE=True and DEMO_MODE=False.
 
     Returns:
         bool: True if GEE initialised successfully, False otherwise.
@@ -152,7 +156,42 @@ def initialize_gee() -> bool:
         DEMO_MODE = True
         return False
 
-    # --- Attempt 1: silent init (already authenticated) ---
+    # --- Attempt 0: Streamlit Secrets service-account authentication ---
+    # This path is active only when running on Streamlit Cloud (or any
+    # environment where streamlit is installed and st.secrets is populated).
+    # No private-key or token values are written to stdout/logs.
+    try:
+        import streamlit as st  # noqa: PLC0415 – optional, may not be installed
+
+        sa_secrets = st.secrets.get("gee_service_account")
+        if sa_secrets:
+            sa_email = sa_secrets.get("client_email", "")
+            # Build a credentials object from the private key stored in secrets.
+            # ee.ServiceAccountCredentials accepts the raw PEM string directly.
+            credentials = ee.ServiceAccountCredentials(
+                email=sa_email,
+                key_data=sa_secrets.get("private_key", ""),
+            )
+            ee.Initialize(credentials=credentials, project=EE_PROJECT_ID)
+            GEE_AVAILABLE = True
+            DEMO_MODE = False
+            print(
+                f"[INFO] Google Earth Engine initialised via Streamlit Secrets "
+                f"service account (project={EE_PROJECT_ID})."
+            )
+            return True
+    except ImportError:
+        # streamlit is not installed — running locally, skip this path
+        pass
+    except Exception as sa_error:
+        # Log the error class/message but never the key material itself
+        print(
+            f"[INFO] Streamlit Secrets service-account init failed "
+            f"({type(sa_error).__name__}: {sa_error}). "
+            "Falling back to local authentication."
+        )
+
+    # --- Attempt 1: silent init (already authenticated, local / Open Mode) ---
     try:
         ee.Initialize(project=EE_PROJECT_ID)
         GEE_AVAILABLE = True
@@ -162,7 +201,7 @@ def initialize_gee() -> bool:
     except Exception as first_error:
         print(f"[INFO] Silent GEE init failed ({first_error}). Trying OAuth flow...")
 
-    # --- Attempt 2: interactive OAuth authentication ---
+    # --- Attempt 2: interactive OAuth authentication (local / Live Mode) ---
     try:
         ee.Authenticate()
         ee.Initialize(project=EE_PROJECT_ID)
